@@ -32,6 +32,8 @@ export async function run(state, text, source = "input") {
     // brief limits: full run cut at 2 min; update at most 5 model calls and 1 min. We stop early with margin.
     deadline: Date.now() + (isFirst ? 110000 : 52000), maxCalls: isFirst ? 0 : 5,
   };
+  const before = state.plan ? clone(state.plan) : null; // for the UI's "what changed" view
+  delete state.prevPlan;
   const snapshot = clone(state);
   try {
     await runInner(state, text, trace);
@@ -42,6 +44,7 @@ export async function run(state, text, source = "input") {
     trace.kind += " (failed)";
     trace.notes.push({ kind: "error", text: `Run stopped: ${e.message}. Previous plan kept.` });
   }
+  state.prevPlan = before;
   return finish(state, trace);
 }
 

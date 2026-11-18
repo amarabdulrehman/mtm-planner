@@ -15,6 +15,13 @@ npm run reset                   # start over with a new pack
 
 Each run prints the trace and saves `out/plan.md`, `out/trace.txt` (all runs), `out/outbox.txt` (reply drafts), `out/submission.txt` (plan + full trace + outbox, the file to upload) and `out/state.json`.
 
+## UI features
+- **Add a message** box: type, paste or speak (browser speech recognition, zero model tokens) a new email/WhatsApp message; it runs the same engine as the command line (same limits: at most 5 model calls, under 1 minute) and the plan updates live.
+- **What changed** panel after every update: each cost, venue, meal, judge and schedule change with arrows, plus the reason for any rejected message. Changed cards are highlighted.
+- Budget bar and schedule timeline, check badges, judge assignments, dietary split.
+- **Outbox**: one reply draft per sender on their own channel, with Copy, Open in WhatsApp and Open in email buttons. Nothing is sent automatically.
+- Light/dark theme, works on phones, Print / save as PDF.
+
 ## How it works
 
 ```

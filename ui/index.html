@@ -41,6 +41,44 @@
   .note { font:12px/1.5 ui-monospace, Consolas, monospace; padding:2px 0; }
   .run h3 { margin:0 0 8px; font-size:15px; }
   .empty { padding:60px; text-align:center; color:var(--mute); }
+
+  [data-theme=light] { --bg:#f6f7fb; --card:#ffffff; --line:#e2e5ee; --text:#151821; --mute:#5d6475; --ok:#0f9d6b; --bad:#d23c3c; --warn:#b7791f; --acc:#3b5bdb; }
+  [data-theme=light] pre { color:#2b2f3a; }
+  [data-theme=light] .pill.ok, [data-theme=light] .tag.used { background:#e3f7ef; } [data-theme=light] .pill.bad, [data-theme=light] .tag.rejected { background:#fde8e8; }
+  [data-theme=light] .msg.rejected { background:#fff4f4; } [data-theme=light] .area, [data-theme=light] .tag.partly { background:#e8edff; }
+  header { flex-wrap:wrap; }
+  .iconbtn { background:var(--card); border:1px solid var(--line); color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; font:inherit; }
+  .iconbtn:hover, .tabs button:hover { border-color:var(--acc); }
+  .btn { background:var(--acc); color:#fff; border:0; padding:9px 16px; border-radius:8px; font:inherit; font-weight:600; cursor:pointer; }
+  .btn:disabled { opacity:.55; cursor:wait; }
+  .btn.ghost { background:none; color:var(--text); border:1px solid var(--line); font-weight:500; }
+  #composer { max-width:1300px; margin:16px auto 0; padding:0 22px; }
+  #composer .card { margin:0; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .row > * { flex:0 0 auto; }
+  input, select, textarea { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid var(--acc); outline-offset:1px; }
+  textarea { width:100%; min-height:70px; resize:vertical; margin:10px 0; }
+  .mic.on { background:var(--bad); color:#fff; border-color:var(--bad); animation:pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity:.6; } }
+  .status { margin-top:8px; font-size:13px; }
+  .bar { display:flex; height:26px; border-radius:8px; overflow:hidden; border:1px solid var(--line); margin:4px 0 8px; }
+  .bar > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; white-space:nowrap; overflow:hidden; min-width:2px; }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:var(--mute); }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+  .chg { padding:3px 0; } .chg.up { color:var(--bad); } .chg.down { color:var(--ok); } .chg.same { color:var(--mute); }
+  .card.changed { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
+  .flash { animation:flash 2.2s ease-out 1; }
+  @keyframes flash { 0% { box-shadow:0 0 0 3px var(--acc); } 100% { box-shadow:0 0 0 1px var(--acc); } }
+  .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; margin:0 6px 6px 0; }
+  .badge.ok { background:#0f2a21; color:var(--ok); } .badge.bad { background:#2a1212; color:var(--bad); }
+  [data-theme=light] .badge.ok { background:#e3f7ef; } [data-theme=light] .badge.bad { background:#fde8e8; }
+  .actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .actions a, .actions button { font-size:13px; text-decoration:none; }
+  .demo { background:#1b2240; color:var(--acc); padding:8px 22px; font-size:13px; }
+  [data-theme=light] .demo { background:#e8edff; }
+  @media (max-width: 640px) { main, #composer { padding-left:12px; padding-right:12px; } header { padding:10px 12px; } .tabs { width:100%; } .tabs button { flex:1; } }
+  @media print { header .tabs, header .iconbtn, #composer, .actions, .demo { display:none !important; } body { background:#fff; color:#000; } .card { border-color:#ccc; break-inside:avoid; } }
 </style>
 </head>
 <body>
@@ -49,13 +87,30 @@
   <span id="valid" class="pill">no plan</span>
   <span id="meta" class="mute"></span>
   <span class="grow"></span>
-  <div class="tabs">
+  <button class="iconbtn" id="theme" title="Switch light / dark theme" aria-label="Switch theme">◐ Theme</button>
+  <button class="iconbtn" onclick="window.print()" title="Print or save the plan as PDF">⎙ Print</button>
+  <div class="tabs" role="tablist">
     <button data-tab="plan" class="on">Plan</button>
     <button data-tab="messages">Messages</button>
     <button data-tab="trace">Trace</button>
     <button data-tab="outbox">Outbox</button>
   </div>
 </header>
+<div id="demo" class="demo" hidden>Public demo: this is a saved plan from a real run. To add messages live, run the app locally (npm run ui).</div>
+<section id="composer"><div class="card">
+  <h2>Add a new message <span class="mute" style="text-transform:none;letter-spacing:0">· updates the plan with the same engine as the command line (max 5 model calls)</span></h2>
+  <div class="row">
+    <input id="c-sender" placeholder="From (e.g. Accounts, Dean, Caterer)" aria-label="Sender" style="min-width:220px">
+    <select id="c-channel" aria-label="Channel"><option>Email</option><option>WhatsApp</option><option>Notice</option></select>
+    <input id="c-date" type="date" aria-label="Message date">
+    <span class="grow"></span>
+    <select id="c-lang" aria-label="Voice language" title="Voice input language"><option value="en-US">Voice: English</option><option value="ur-PK">Voice: Urdu</option></select>
+    <button class="iconbtn mic" id="c-mic" title="Speak the message (browser speech recognition, no model tokens)">🎤 Speak</button>
+  </div>
+  <textarea id="c-text" placeholder="Type, paste or speak the message. You can also paste whole lines like:  M11 | 12 Nov 2026 | Accounts | Printing is now Rs 6,000.   (Ctrl+Enter to send)" aria-label="Message text"></textarea>
+  <div class="row"><button class="btn" id="c-send">Update plan</button><button class="btn ghost" id="c-clear">Clear</button><span class="mute" id="c-hint"></span></div>
+  <div class="status" id="c-status" aria-live="polite"></div>
+</div></section>
 <main id="app"><div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div></main>
 <script>
 let tab = "plan", last = "";
@@ -67,21 +122,23 @@ function planView(s) {
   const p = s.plan, v = s.validation;
   if (!p) return `<div class="empty">No plan yet.</div>`;
   const rejected = s.messages.filter((m) => m.status === "rejected");
-  return `<div class="grid"><div>
-    <div class="card"><h2>Event</h2><div class="big">${p.event.students} students · ${p.event.teams} teams · ${p.event.hours} h</div>
+  const ch = diffPlan(s.prevPlan, p);
+  const mark = (k) => ch.cards.has(k) ? ` changed ${flashNow ? "flash" : ""}` : "";
+  return `${changesCard(s, ch)}<div class="grid"><div>
+    <div class="card${mark("event")}"><h2>Event</h2><div class="big">${p.event.students} students · ${p.event.teams} teams · ${p.event.hours} h</div>
       <div class="mute">${p.event.headcount} people on site = ${p.event.students} students + ${p.event.staff} staff + ${p.judging.judgesNeeded} judges${p.event.extras.map((x) => ` + ${x.n} ${esc(x.who)}`).join("")}</div></div>
-    <div class="card"><h2>Venue</h2>${p.venue ? `<div class="big">${esc(p.venue.name)} · ${rs(p.venue.price)}</div><div class="mute">${p.venue.capacity} seats for ${p.event.headcount} people · cheapest of ${p.venue.feasible.length} that fit${p.venue.requiredFeatures.length ? " · needs " + esc(p.venue.requiredFeatures.join(", ")) : ""} · source ${esc(p.venue.source)}</div>${p.venue.notes.map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}` : `<div class="bad">No venue fits</div>`}</div>
-    <div class="card"><h2>Schedule</h2><table>${(p.schedule?.blocks ?? []).map((b) => `<tr><td class="mute" style="width:120px">${b.start} – ${b.end}</td><td>${esc(b.name)}</td><td class="num">${b.minutes} min</td></tr>`).join("")}</table>${(p.schedule?.notes ?? []).map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}</div>
-    <div class="card"><h2>Food</h2>${p.food ? `<div class="big">${p.food.quantity} × ${esc(p.food.option)} @ ${rs(p.food.pricePerHead)}</div><div class="mute">${rs(p.food.cost)} total${p.food.fixed.map((f) => ` · ${esc(f.item)} ${rs(f.amount)}`).join("")}</div>${(p.food.special ?? []).length ? `<div>Of which: ${p.food.special.map((x) => `${x.count} ${esc(x.name)}`).join(", ")} · ${p.food.quantity - p.food.special.reduce((t, x) => t + x.count, 0)} regular</div>` : ""}` : ""}</div>
-    <div class="card"><h2>Judging</h2><div class="big">${p.judging.judgesNeeded} of ${p.judging.judgesAvailable} judges</div>
+    <div class="card${mark("venue")}"><h2>Venue</h2>${p.venue ? `<div class="big">${esc(p.venue.name)} · ${rs(p.venue.price)}</div><div class="mute">${p.venue.capacity} seats for ${p.event.headcount} people · cheapest of ${p.venue.feasible.length} that fit${p.venue.requiredFeatures.length ? " · needs " + esc(p.venue.requiredFeatures.join(", ")) : ""} · source ${esc(p.venue.source)}</div>${p.venue.notes.map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}` : `<div class="bad">No venue fits</div>`}</div>
+    <div class="card${mark("schedule")}"><h2>Schedule</h2>${timelineBar(p)}<table>${(p.schedule?.blocks ?? []).map((b) => `<tr><td class="mute" style="width:120px">${b.start} – ${b.end}</td><td>${esc(b.name)}</td><td class="num">${b.minutes} min</td></tr>`).join("")}</table>${(p.schedule?.notes ?? []).map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}</div>
+    <div class="card${mark("food")}"><h2>Food</h2>${p.food ? `<div class="big">${p.food.quantity} × ${esc(p.food.option)} @ ${rs(p.food.pricePerHead)}</div><div class="mute">${rs(p.food.cost)} total${p.food.fixed.map((f) => ` · ${esc(f.item)} ${rs(f.amount)}`).join("")}</div>${(p.food.special ?? []).length ? `<div>Of which: ${p.food.special.map((x) => `${x.count} ${esc(x.name)}`).join(", ")} · ${p.food.quantity - p.food.special.reduce((t, x) => t + x.count, 0)} regular</div>` : ""}` : ""}</div>
+    <div class="card${mark("judging")}"><h2>Judging</h2><div class="big">${p.judging.judgesNeeded} of ${p.judging.judgesAvailable} judges</div>
       <div class="mute">${p.judging.teams} teams × ${p.judging.judgesPerTeam} judge ÷ max ${p.judging.maxTeamsPerJudge} teams each · ${p.judging.minutesPerTeam} min per team → ${p.judging.judgingMinutes} min · fees ${rs(p.judging.feeTotal)}</div>
       ${p.judging.assignments ? `<details style="margin-top:8px"><summary class="mute" style="cursor:pointer">Show judge → team assignments (${p.judging.assignments.length} judges)</summary><table>${p.judging.assignments.map((a) => `<tr><td>Judge ${a.judge}</td><td class="mute">${a.teams.map((t) => `team ${t.team} (+${t.offset} min)`).join(", ")}</td></tr>`).join("")}</table></details>` : ""}</div>
-    <div class="card"><h2>Budget</h2><table>${p.budget.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="mute">${esc(l.source)}</td><td class="num">${rs(l.amount)}</td></tr>`).join("")}
+    <div class="card${mark("budget")}"><h2>Budget</h2>${budgetBar(p)}<table>${p.budget.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="mute">${esc(l.source)}</td><td class="num">${rs(l.amount)}</td></tr>`).join("")}
       <tr><th>Total</th><th></th><th class="num">${rs(p.budget.spent)} / ${rs(p.budget.total)}</th></tr></table>
       <div class="mute" style="margin-top:6px">Remaining ${rs(p.budget.remaining)}</div>
       ${p.budget.requests.map((r) => `<div class="warn" style="margin-top:4px">Not included: ${esc(r.item)} ${rs(r.amount)} (request, not approved${r.affordable ? "; would fit" : "; would not fit"})</div>`).join("")}</div>
   </div><div>
-    <div class="card"><h2>Checks</h2>${(v?.checks ?? []).map((c) => `<div class="check"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "PASS" : "FAIL"}</b><div><div>${esc(c.name)}</div><div class="mute">${esc(c.detail)}</div></div></div>`).join("")}</div>
+    <div class="card"><h2>Checks</h2>${checkBadges(v)}${(v?.checks ?? []).map((c) => `<div class="check"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "PASS" : "FAIL"}</b><div><div>${esc(c.name)}</div><div class="mute">${esc(c.detail)}</div></div></div>`).join("")}</div>
     <div class="card"><h2>Rejected messages (${rejected.length})</h2>${rejected.length ? rejected.map(msgView).join("") : `<div class="mute">None</div>`}</div>
     ${p.assumptions.length ? `<div class="card"><h2>Assumptions &amp; conflicts</h2>${p.assumptions.map((a) => `<div class="${a.startsWith("CONFLICT") ? "warn" : "mute"}">• ${esc(a)}</div>`).join("")}</div>` : ""}
   </div></div>`;
@@ -96,7 +153,10 @@ function outboxView(s) {
   const d = s.outbox ?? [];
   if (!d.length) return `<div class="empty">No reply drafts yet.</div>`;
   return `<div class="card mute">One reply per sender, on the channel they used. Written by code from the plan (no model calls). Drafts only: nothing is sent.</div>` +
-    d.map((x) => `<div class="card"><h2><span class="tag ${x.channel === "WhatsApp" ? "used" : "partly"}" style="margin:0 8px 0 0">${esc(x.channel)}</span>To ${esc(x.to)} <span class="mute">· re: ${x.replyTo.map((i) => "#" + i).join(", ")}</span></h2>${x.subject ? `<div><b>Subject:</b> ${esc(x.subject)}</div>` : ""}<pre style="border:0;padding:6px 0 0;color:var(--text);font:14px/1.5 system-ui, sans-serif">${esc(x.body)}</pre></div>`).join("");
+    d.map((x, i) => `<div class="card"><h2><span class="tag ${x.channel === "WhatsApp" ? "used" : "partly"}" style="margin:0 8px 0 0">${esc(x.channel)}</span>To ${esc(x.to)} <span class="mute">· re: ${x.replyTo.map((i) => "#" + i).join(", ")}</span></h2>${x.subject ? `<div><b>Subject:</b> ${esc(x.subject)}</div>` : ""}<pre style="border:0;padding:6px 0 0;color:var(--text);font:14px/1.5 system-ui, sans-serif">${esc(x.body)}</pre>
+      <div class="actions"><button class="iconbtn" data-copy="${i}">⧉ Copy</button>${x.channel === "WhatsApp"
+        ? `<a class="iconbtn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(x.body)}">Open in WhatsApp</a>`
+        : `<a class="iconbtn" href="mailto:?subject=${encodeURIComponent(x.subject ?? "")}&body=${encodeURIComponent(x.body)}">Open in email app</a>`}<span class="mute" style="align-self:center">You choose the recipient and press send yourself.</span></div></div>`).join("");
 }
 function traceView(s) {
   const all = s.runs.reduce((t, r) => t + r.totalTokens, 0);
@@ -106,19 +166,130 @@ function traceView(s) {
       ${r.calls.map((c) => `<details class="call"><summary><b>Call ${c.n}</b><span class="area">${esc(c.area)}</span><span class="mute">${esc(c.model)}</span><span class="grow"></span><span class="mute">in ${c.tokens.input} · out ${c.tokens.output}${c.tokens.thinking ? " · think " + c.tokens.thinking : ""} · total ${c.tokens.total} · ${(c.ms / 1000).toFixed(1)} s</span></summary><pre>SYSTEM PROMPT\n${esc(c.system ?? "")}</pre><pre>INPUT\n${esc(c.input)}</pre><pre>OUTPUT\n${esc(c.output)}</pre></details>`).join("") || `<div class="mute">No model calls</div>`}
       ${r.notes.map((n) => `<div class="note ${n.kind === "rejected" ? "bad" : n.kind === "error" ? "bad" : n.kind === "info" ? "mute" : "warn"}">[${esc(n.kind)}] ${esc(n.text)}</div>`).join("")}</div>`).join("");
 }
+// ---------- what changed since the previous plan ----------
+function diffPlan(a, b) {
+  const out = [], cards = new Set();
+  if (!a || !b) return { out, cards };
+  const money = (card, label, x, y, goodWhenUp = false) => { if (x === y || x == null || y == null) return; cards.add(card);
+    const up = y > x; out.push({ dir: up === goodWhenUp ? "down" : "up", arrow: up ? "▲" : "▼", text: `${label}: ${rs(x)} → ${rs(y)} (${up ? "+" : "−"}${rs(Math.abs(y - x)).slice(3)})` }); };
+  const val = (card, label, x, y) => { if (String(x) === String(y)) return; cards.add(card); out.push({ dir: "same", text: `${label}: ${x ?? "—"} → ${y ?? "—"}` }); };
+  val("event", "People on site", a.event?.headcount, b.event?.headcount);
+  val("venue", "Venue", a.venue?.name, b.venue?.name); money("venue", "Venue cost", a.venue?.price, b.venue?.price);
+  val("food", "Meal", a.food?.option, b.food?.option); val("food", "Meals", a.food?.quantity, b.food?.quantity); money("food", "Food cost", a.food?.cost, b.food?.cost);
+  val("judging", "Judges", a.judging?.judgesNeeded, b.judging?.judgesNeeded); money("judging", "Judge fees", a.judging?.feeTotal, b.judging?.feeTotal);
+  const bl = (p) => (p.schedule?.blocks ?? []).map((x) => `${x.start}–${x.end} ${x.name}`);
+  const sa = bl(a), sb = bl(b);
+  for (const x of sb.filter((y) => !sa.includes(y))) { cards.add("schedule"); out.push({ dir: "same", text: `Schedule now has: ${x}` }); }
+  for (const x of sa.filter((y) => !sb.includes(y))) { cards.add("schedule"); out.push({ dir: "same", text: `Schedule no longer has: ${x}` }); }
+  const li = (p) => Object.fromEntries((p.budget?.lines ?? []).map((l) => [l.item, l.amount]));
+  const la = li(a), lb = li(b);
+  for (const k of new Set([...Object.keys(la), ...Object.keys(lb)])) if (la[k] !== lb[k] && !/^(Venue|Food: \d|Judges)/.test(k)) money("budget", k, la[k] ?? 0, lb[k] ?? 0);
+  money("budget", "Total spend", a.budget?.spent, b.budget?.spent);
+  money("budget", "Budget", a.budget?.total, b.budget?.total, true);
+  money("budget", "Remaining", a.budget?.remaining, b.budget?.remaining, true);
+  return { out, cards };
+}
+function changesCard(s, ch) {
+  const r = s.runs.at(-1);
+  if (!s.prevPlan || !r) return "";
+  const why = r.notes.filter((n) => n.kind !== "info").map((n) => `<div class="${n.kind === "rejected" ? "bad" : "warn"}">• ${esc(n.text)}</div>`).join("");
+  return `<div class="card${ch.out.length ? " changed" : ""}"><h2>What changed in the last update <span class="mute" style="text-transform:none;letter-spacing:0">· ${esc(r.source)} · ${r.calls.length} model calls · ${r.totalTokens} tokens · ${((r.runMs ?? 0) / 1000).toFixed(1)} s</span></h2>
+    ${ch.out.length ? ch.out.map((c) => `<div class="chg ${c.dir}">${c.arrow ?? "•"} ${esc(c.text)}</div>`).join("") : `<div class="mute">The plan did not change.</div>`}${why}</div>`;
+}
+// ---------- visuals ----------
+const PAL = ["#7c9cff", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#38bdf8", "#fb923c", "#4ade80", "#e879f9"];
+function budgetBar(p) {
+  const total = p.budget.total || p.budget.spent || 1;
+  const segs = p.budget.lines.map((l, i) => ({ w: l.amount / total * 100, c: PAL[i % PAL.length], t: `${l.item}: ${rs(l.amount)}` }));
+  if (p.budget.remaining > 0) segs.push({ w: p.budget.remaining / total * 100, c: "var(--line)", t: `Remaining: ${rs(p.budget.remaining)}` });
+  const pct = Math.round(p.budget.spent / total * 100);
+  return `<div class="mute">${pct}% of budget used</div><div class="bar" role="img" aria-label="Budget breakdown">${segs.map((x) => `<div style="width:${x.w}%;background:${x.c}" title="${esc(x.t)}"></div>`).join("")}</div>
+    <div class="legend">${segs.map((x) => `<span><i style="background:${x.c}"></i>${esc(x.t)}</span>`).join("")}</div>`;
+}
+function timelineBar(p) {
+  const bl = p.schedule?.blocks ?? []; const tot = bl.reduce((t, b) => t + b.minutes, 0) || 1;
+  const col = (b) => b.isJudging ? "#a78bfa" : b.build ? "#34d399" : b.fixed ? "#fbbf24" : /lunch|break/i.test(b.name) ? "#38bdf8" : "#7c9cff";
+  return `<div class="bar" role="img" aria-label="Schedule timeline">${bl.map((b) => `<div style="width:${b.minutes / tot * 100}%;background:${col(b)}" title="${esc(`${b.start}–${b.end} ${b.name} (${b.minutes} min)`)}">${b.minutes / tot > .09 ? esc(b.name) : ""}</div>`).join("")}</div>
+    <div class="legend"><span><i style="background:#7c9cff"></i>Opening/closing</span><span><i style="background:#34d399"></i>Build</span><span><i style="background:#38bdf8"></i>Lunch/break</span><span><i style="background:#fbbf24"></i>Fixed by a message</span><span><i style="background:#a78bfa"></i>Judging</span></div><div style="height:8px"></div>`;
+}
+function checkBadges(v) {
+  const c = v?.checks ?? []; const n = c.filter((x) => x.ok).length;
+  return `<div style="margin-bottom:6px"><span class="badge ${n === c.length ? "ok" : "bad"}">${n}/${c.length} checks pass</span></div>`;
+}
+// ---------- state loading (local server, or the saved snapshot on the public demo) ----------
+let demo = false, flashNow = false, lastRuns = null;
+async function loadStateJson() {
+  if (!demo) { try { const r = await fetch("/api/state", { cache: "no-store" }); if (r.ok && (r.headers.get("content-type") || "").includes("json")) return r.json(); } catch {} demo = true; }
+  const r = await fetch("state.json", { cache: "no-store" }); return r.ok ? r.json() : null;
+}
 async function tick() {
   try {
-    const s = await (await fetch("/api/state")).json();
+    const s = await loadStateJson();
+    if (demo) { document.getElementById("demo").hidden = false; document.getElementById("composer").hidden = true; }
     const key = JSON.stringify(s?.runs?.length) + tab + (s?.messages?.length ?? 0);
     if (key === last) return; last = key;
+    flashNow = lastRuns != null && s?.runs?.length !== lastRuns; lastRuns = s?.runs?.length ?? 0;
     const app = document.getElementById("app");
     if (!s) { app.innerHTML = `<div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div>`; return; }
     const ok = s.validation?.ok;
     const v = document.getElementById("valid"); v.textContent = ok ? "PLAN VALID" : "PLAN INVALID"; v.className = "pill " + (ok ? "ok" : "bad");
     const model = s.runs.at(-1)?.calls.at(-1)?.model ?? "";
     document.getElementById("meta").textContent = `${model} · ${s.runs.reduce((t, r) => t + r.totalTokens, 0).toLocaleString()} tokens · ${s.messages.length} messages`;
+    window.__s = s;
     app.innerHTML = tab === "plan" ? planView(s) : tab === "messages" ? s.messages.map(msgView).join("") : tab === "outbox" ? outboxView(s) : traceView(s);
   } catch (e) { /* server restarting */ }
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-copy]"); if (!b) return;
+  const d = window.__s?.outbox?.[+b.dataset.copy]; if (!d) return;
+  try { await navigator.clipboard.writeText((d.subject ? `Subject: ${d.subject}\n\n` : "") + d.body); b.textContent = "✓ Copied"; } catch { b.textContent = "Copy failed"; }
+  setTimeout(() => (b.textContent = "⧉ Copy"), 1500);
+});
+// ---------- theme ----------
+try { if (localStorage.getItem("theme") === "light") document.documentElement.dataset.theme = "light"; } catch {}
+document.getElementById("theme").onclick = () => { const l = document.documentElement.dataset.theme !== "light"; document.documentElement.dataset.theme = l ? "light" : ""; try { localStorage.setItem("theme", l ? "light" : "dark"); } catch {} };
+// ---------- composer: type, paste or speak a new message ----------
+const $ = (id) => document.getElementById(id);
+$("c-date").valueAsDate = new Date();
+function composed() {
+  const t = $("c-text").value.trim(); if (!t) return "";
+  if (/^\s*\S+\s*\|/m.test(t)) return t; // already in "ID | date | sender | message" form
+  const n = (window.__s?.messages?.length ?? 0) + 1;
+  const d = $("c-date").value ? new Date($("c-date").value + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
+  const ch = $("c-channel").value;
+  return `UI${n} | ${d} | ${$("c-sender").value.trim() || "Unknown sender"} | ${ch === "Notice" ? "" : `[${ch}] `}${t.replace(/\s*\n\s*/g, " ")}`;
+}
+async function send() {
+  const text = composed(); const st = $("c-status");
+  if (!text) { st.innerHTML = `<span class="warn">Write or speak a message first.</span>`; $("c-text").focus(); return; }
+  $("c-send").disabled = true; $("c-send").textContent = "Updating…"; st.innerHTML = `<span class="mute">Reading the message and re-planning…</span>`;
+  try {
+    const r = await fetch("/api/message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    st.innerHTML = `<span class="${j.valid ? "ok" : "bad"}">${j.valid ? "✓ Plan updated and valid" : "Plan kept, but it is not valid — see checks"}</span> <span class="mute">· ${j.calls} model calls · ${j.tokens} tokens · ${(j.ms / 1000).toFixed(1)} s</span>` +
+      j.notes.map((n) => `<div class="${n.startsWith("[rejected]") ? "bad" : "warn"}">${esc(n)}</div>`).join("");
+    $("c-text").value = ""; tab = "plan"; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === "plan")); last = ""; await tick();
+    window.scrollTo({ top: $("app").offsetTop - 70, behavior: "smooth" });
+  } catch (e) { st.innerHTML = `<span class="bad">Could not update: ${esc(e.message)}</span>`; }
+  finally { $("c-send").disabled = false; $("c-send").textContent = "Update plan"; }
+}
+$("c-send").onclick = send;
+$("c-clear").onclick = () => { $("c-text").value = ""; $("c-status").textContent = ""; };
+$("c-text").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); });
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) { $("c-mic").disabled = true; $("c-mic").title = "Voice input needs Chrome or Edge"; $("c-lang").hidden = true; }
+else {
+  let rec = null;
+  $("c-mic").onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = $("c-lang").value; rec.interimResults = true; rec.continuous = true;
+    const base = $("c-text").value ? $("c-text").value.trim() + " " : "";
+    rec.onresult = (e) => { let t = ""; for (const r of e.results) t += r[0].transcript; $("c-text").value = base + t; };
+    rec.onend = () => { rec = null; $("c-mic").classList.remove("on"); $("c-mic").textContent = "🎤 Speak"; };
+    rec.onerror = (e) => { $("c-status").innerHTML = `<span class="warn">Voice: ${esc(e.error)}</span>`; };
+    rec.start(); $("c-mic").classList.add("on"); $("c-mic").textContent = "■ Stop";
+  };
 }
 tick(); setInterval(tick, 2000);
 </script>
