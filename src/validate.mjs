@@ -22,9 +22,17 @@ export function validate(plan) {
 
   const s = plan.schedule;
   const sum = s ? s.blocks.reduce((t, b) => t + b.minutes, 0) : 0;
-  const judgingBlock = s?.blocks.find((b) => b.name.startsWith("Judging"));
-  const schedOk = s && sum === s.totalMinutes && s.buildMinutes > 0 && judgingBlock && judgingBlock.minutes >= plan.judging.judgingMinutes && s.blocks.every((b) => b.minutes >= 0);
-  add("Schedule valid", schedOk, s ? `${sum}/${s.totalMinutes} min, build ${s.buildMinutes} min, judging ${judgingBlock?.minutes} min` : "no schedule");
+  const problems = [];
+  if (s) {
+    if (sum !== s.totalMinutes) problems.push(`blocks add up to ${sum} of ${s.totalMinutes} min`);
+    if (s.overlaps) problems.push("blocks overlap");
+    if (s.unplaced.length) problems.push(`does not fit: ${s.unplaced.join(", ")}`);
+    if (s.buildMinutes <= 0) problems.push("no build time left");
+    if (s.judgingMinutes < s.requiredJudging) problems.push(`judging needs ${s.requiredJudging} min, has ${s.judgingMinutes}`);
+    for (const b of s.requiredBreaks) if (!s.blocks.some((x) => x.name === b)) problems.push(`missing ${b}`);
+  }
+  add("Schedule valid", s && !problems.length,
+    s ? (problems.length ? problems.join("; ") : `${sum}/${s.totalMinutes} min${s.start ? ` (${s.start}-${s.end})` : ""}, build ${s.buildMinutes} min, judging ${s.judgingMinutes} min`) : "no schedule");
 
   const j = plan.judging;
   add("Enough judges", j.judgesNeeded != null && j.judgesAvailable != null && j.judgesAvailable >= j.judgesNeeded,

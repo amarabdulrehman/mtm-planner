@@ -40,7 +40,7 @@ export function planText(state) {
   for (const n of p.venue?.notes ?? []) L.push(`- ${n}`);
   L.push("");
   L.push("## Schedule");
-  for (const b of p.schedule?.blocks ?? []) L.push(`${b.start}-${b.end}  ${b.name} (${b.minutes} min)`);
+  for (const b of p.schedule?.blocks ?? []) L.push(`${b.start}-${b.end}  ${b.name} (${b.minutes} min)${b.fixed ? " [fixed time]" : ""}`);
   for (const n of p.schedule?.notes ?? []) L.push(`- ${n}`);
   L.push("");
   L.push("## Food");

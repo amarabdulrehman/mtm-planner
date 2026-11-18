@@ -8,7 +8,7 @@ import { call } from "./llm.mjs";
 const OPS = {
   venue: `{"exclude":["venue names that break the constraint"],"require_features":["feature words a venue must list"],"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
   food: `{"exclude":["food option names not allowed"],"extra_per_head":n,"extra_meals":n,"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
-  schedule: `{"start_time":"HH:MM or null","add_blocks":[{"name":"...","minutes":n}],"notes":["..."]}`,
+  schedule: `{"start_time":"HH:MM or null","add_blocks":[{"name":"...","minutes":n,"start":"HH:MM only if a clock time is required"}],"notes":["..."]}`,
   judging: `{"judges_per_team":n or null,"max_teams_per_judge":n or null,"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
   budget: `{"reserve":n,"reserve_percent":n,"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
 };

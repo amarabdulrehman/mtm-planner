@@ -11,9 +11,10 @@ role: organizer (dean, principal, university admin, event lead), finance, venue,
 date: as written in the message; assume year ${new Date().getFullYear()}; null if none.
 
 facts: [{"k":"<key>","v":<value>,"item":"<name or null>"}]. Use ONLY these keys, numbers as plain numbers (Rs 1,200 -> 1200):
-event.students, event.team_size, event.teams, event.hours, event.staff, event.start_time ("HH:MM" 24h), event.extra_people (item = who; people who attend and eat, beyond students/staff/judges)
+event.students, event.team_size, event.teams, event.hours, event.staff, event.start_time ("HH:MM" 24h), event.end_time ("HH:MM" 24h), event.extra_people (item = who; people who attend and eat, beyond students/staff/judges)
 budget.total (whole event budget)
-schedule.break (item = name, v = minutes)
+schedule.break (item = name, v = minutes; a break with no fixed time)
+schedule.fixed (item = name, v = {"start":"HH:MM","end":"HH:MM"} or {"start":"HH:MM","minutes":n}; anything that must happen at a stated clock time, 24h, e.g. judging 2:30-4:30 pm -> 14:30-16:30)
 venue.option (item = venue name, v = {"capacity":n,"price":n (total) or "price_per_hour":n,"features":["generator",...]})
 food.option (item = option name, v = {"price_per_head":n,"default":true if it is the standard/regular/usual option else false})
 food.fixed_cost (item = name, v = amount; e.g. delivery fee; 0 if stated free)

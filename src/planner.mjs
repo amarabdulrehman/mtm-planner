@@ -1,6 +1,7 @@
 // PLANNER (plain code). Turns facts + area decisions into a plan. All arithmetic lives here,
 // so figures are exact and cost zero tokens.
 import { get } from "./facts.mjs";
+import { buildTimeline } from "./schedule.mjs";
 
 // Planning defaults: our own choices, not facts from any message. Shown as assumptions in the plan.
 export const DEFAULTS = { openingMin: 15, lunchMin: 30, closingMin: 15, judgesPerTeam: 1 };
@@ -111,39 +112,35 @@ export function buildPlan(store, decisions = {}) {
   }
   if (choice && foods.length > 1 && !choice.food.isDefault) assumptions.push(`Chose ${choice.food.name} food because the standard option does not fit the budget.`);
 
-  // ---- schedule
+  // ---- schedule (timeline: fixed clock times first, then defaults, then build time fills the gaps)
   const totalMin = hours ? Math.round(hours * 60) : null;
   const breaks = get(store, "schedule.break").map((e) => ({ name: e.item || "Break", minutes: Number(e.v) || 0, source: src(e) }));
   // a constraint block that repeats an existing break (e.g. "Prayer break" twice) is dropped
   const words = (s) => String(s).toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3 && w !== "break");
   const extraBlocks = (d.schedule.add_blocks ?? [])
-    .map((b) => ({ name: b.name, minutes: Number(b.minutes) || 0, source: "constraint" }))
+    .map((b) => ({ name: b.name, minutes: Number(b.minutes) || 0, start: b.start, source: "constraint" }))
     .filter((b) => b.minutes > 0 && !breaks.some((x) => words(x.name).some((w) => words(b.name).includes(w)) || x.name.toLowerCase() === String(b.name).toLowerCase()));
+  const fixedTimes = [
+    ...get(store, "schedule.fixed").map((e) => ({ name: e.item || "Fixed block", start: e.v?.start, end: e.v?.end, minutes: e.v?.minutes, source: src(e) })),
+    ...extraBlocks.filter((b) => b.start).map((b) => ({ ...b })),
+  ];
   let schedule = null;
-  if (totalMin && judgingMinutes) {
-    const fixed = [
-      { name: "Opening & challenge brief", minutes: DEFAULTS.openingMin, source: "default" },
-      { name: "Lunch (boxes served)", minutes: DEFAULTS.lunchMin, source: "default" },
-      ...breaks, ...extraBlocks,
-      { name: `Judging (${teamsPerJudge} teams per judge x ${minPerTeam} min)`, minutes: judgingMinutes, source: "computed" },
-      { name: "Results & closing", minutes: DEFAULTS.closingMin, source: "default" },
-    ];
-    const used = fixed.reduce((s, b) => s + b.minutes, 0);
-    const build = totalMin - used;
-    const b1 = Math.round(build / 2 / 5) * 5;
-    const blocks = [
-      fixed[0],
-      { name: "Build session 1", minutes: b1, source: "computed" },
-      fixed[1],
-      ...breaks, ...extraBlocks,
-      { name: "Build session 2", minutes: build - b1, source: "computed" },
-      fixed[fixed.length - 2], fixed[fixed.length - 1],
-    ];
-    const start = d.schedule.start_time || get(store, "event.start_time")?.v || null;
-    let t = start ? toMin(start) : 0;
-    for (const b of blocks) { b.start = start ? fmt(t) : `+${fmtRel(t)}`; t += b.minutes; b.end = start ? fmt(t) : `+${fmtRel(t)}`; }
-    schedule = { start, totalMinutes: totalMin, buildMinutes: build, blocks, notes: d.schedule.notes ?? [] };
-    assumptions.push(`Opening ${DEFAULTS.openingMin} min, lunch ${DEFAULTS.lunchMin} min and closing ${DEFAULTS.closingMin} min are our planning defaults.`);
+  if ((totalMin || get(store, "event.end_time")) && judgingMinutes) {
+    const tl = buildTimeline({
+      start: d.schedule.start_time || get(store, "event.start_time")?.v || null,
+      end: get(store, "event.end_time")?.v || null,
+      totalMin,
+      fixed: fixedTimes,
+      opening: { name: "Opening & challenge brief", minutes: DEFAULTS.openingMin, source: "default" },
+      closing: { name: "Results & closing", minutes: DEFAULTS.closingMin, source: "default" },
+      lunch: { name: "Lunch (boxes served)", minutes: DEFAULTS.lunchMin, source: "default" },
+      middle: [...breaks, ...extraBlocks.filter((b) => !b.start)],
+      judging: { name: `Judging (${teamsPerJudge} teams per judge x ${minPerTeam} min)`, minutes: judgingMinutes, source: "computed" },
+    });
+    if (tl) {
+      schedule = { ...tl, requiredJudging: judgingMinutes, requiredBreaks: breaks.map((b) => b.name), notes: [...tl.notes, ...(d.schedule.notes ?? [])] };
+      assumptions.push(`Opening ${DEFAULTS.openingMin} min, lunch ${DEFAULTS.lunchMin} min and closing ${DEFAULTS.closingMin} min are our planning defaults.`);
+    }
   }
 
   // ---- budget lines
@@ -172,16 +169,4 @@ export function buildPlan(store, decisions = {}) {
     budget: { total: budgetTotal, lines, spent, remaining: budgetTotal != null ? budgetTotal - spent : null, requests, notes: d.budget.notes ?? [] },
     assumptions,
   };
-}
-
-function toMin(hhmm) {
-  const m = String(hhmm).match(/(\d{1,2}):(\d{2})/);
-  return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
-}
-function fmt(min) {
-  const h = Math.floor(min / 60) % 24, m = min % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-function fmtRel(min) {
-  return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
 }

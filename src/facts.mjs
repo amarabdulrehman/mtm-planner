@@ -6,7 +6,8 @@
 const AUTHORITY = [
   ["event.", ["organizer"]],
   ["budget.total", ["organizer"]],
-  ["schedule.break", ["organizer"]],
+  ["schedule.fixed", ["organizer", "judging"]],
+  ["schedule.", ["organizer"]],
   ["venue.", ["venue", "organizer"]],
   ["food.option", ["caterer", "organizer"]],
   ["food.fixed_cost", ["caterer", "organizer"]],
@@ -19,11 +20,11 @@ const AUTHORITY = [
 // Keys that hold one value per named item (e.g. one price per venue).
 const ITEM_KEYS = new Set([
   "venue.option", "food.option", "food.fixed_cost", "budget.committed",
-  "budget.request", "schedule.break", "event.extra_people",
+  "budget.request", "schedule.break", "schedule.fixed", "event.extra_people",
 ]);
 
 export const KNOWN_KEYS = new Set([
-  "event.students", "event.team_size", "event.teams", "event.hours", "event.staff", "event.start_time",
+  "event.students", "event.team_size", "event.teams", "event.hours", "event.staff", "event.start_time", "event.end_time", "schedule.fixed",
   "event.extra_people", "budget.total", "schedule.break", "venue.option", "food.option", "food.fixed_cost",
   "food.quantity", "judging.available", "judging.fee", "judging.minutes_per_team",
   "judging.max_teams_per_judge", "judging.judges_per_team", "budget.committed", "budget.request",
