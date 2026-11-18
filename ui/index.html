@@ -5,89 +5,99 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MTM Planner</title>
 <style>
-  :root { --bg:#0b0d12; --card:#12151c; --line:#232836; --text:#e8eaf0; --mute:#8a90a2; --ok:#34d399; --bad:#f87171; --warn:#fbbf24; --acc:#7c9cff; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
-  header { display:flex; gap:16px; align-items:center; padding:14px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
-  h1 { font-size:17px; margin:0; }
-  .pill { padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; border:1px solid var(--line); color:var(--mute); }
-  .pill.ok { color:var(--ok); border-color:#1f6f53; background:#0f2a21; }
-  .pill.bad { color:var(--bad); border-color:#7a2d2d; background:#2a1212; }
+  :root {
+    --bg:#f5f5f7; --card:rgba(255,255,255,.86); --solid:#fff; --line:rgba(0,0,0,.08); --text:#1d1d1f; --mute:#6e6e73;
+    --ok:#248a3d; --okbg:#e8f7ec; --bad:#d70015; --badbg:#ffeceb; --warn:#b25000; --warnbg:#fff4e5; --acc:#0071e3; --accbg:#e8f1fd;
+    --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); --glass:rgba(245,245,247,.72); --field:#fff;
+    color-scheme: light;
+  }
+  [data-theme=dark] {
+    --bg:#000; --card:rgba(28,28,30,.9); --solid:#1c1c1e; --line:rgba(255,255,255,.1); --text:#f5f5f7; --mute:#98989d;
+    --ok:#30d158; --okbg:rgba(48,209,88,.14); --bad:#ff453a; --badbg:rgba(255,69,58,.14); --warn:#ff9f0a; --warnbg:rgba(255,159,10,.14); --acc:#0a84ff; --accbg:rgba(10,132,255,.16);
+    --shadow:0 0 0 1px rgba(255,255,255,.06); --glass:rgba(22,22,23,.72); --field:#2c2c2e; color-scheme: dark;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.47 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing:antialiased; letter-spacing:-.01em; }
+  header { display:flex; flex-wrap:wrap; gap:14px; align-items:center; padding:12px 28px; position:sticky; top:0; z-index:5; background:var(--glass); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid var(--line); }
+  h1 { font-size:21px; font-weight:600; margin:0; letter-spacing:-.02em; }
+  h1 small { display:block; font-size:12px; font-weight:400; color:var(--mute); letter-spacing:0; }
+  .pill { padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; background:var(--line); color:var(--mute); }
+  .pill.ok { color:var(--ok); background:var(--okbg); } .pill.bad { color:var(--bad); background:var(--badbg); }
   .grow { flex:1; }
-  .tabs { display:flex; gap:4px; }
-  .tabs button { background:none; border:1px solid var(--line); color:var(--mute); padding:6px 12px; border-radius:8px; cursor:pointer; font:inherit; }
-  .tabs button.on { color:var(--text); background:var(--card); }
-  main { padding:20px 22px; max-width:1300px; margin:0 auto; }
-  .grid { display:grid; grid-template-columns: 1.4fr 1fr; gap:16px; }
-  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
-  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:0 0 10px; }
-  .big { font-size:20px; font-weight:600; }
+  .tabs { display:flex; padding:2px; background:var(--line); border-radius:10px; }
+  .tabs button { background:none; border:0; color:var(--text); padding:6px 16px; border-radius:8px; cursor:pointer; font:inherit; font-size:13px; font-weight:500; transition:background .2s, box-shadow .2s; }
+  .tabs button.on { background:var(--solid); box-shadow:0 1px 3px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04); }
+  main { padding:24px 28px 60px; max-width:1240px; margin:0 auto; }
+  .grid { display:grid; grid-template-columns:1.45fr 1fr; gap:20px; align-items:start; }
+  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border-radius:18px; padding:20px 22px; margin-bottom:20px; box-shadow:var(--shadow); transition:box-shadow .4s, transform .4s; }
+  .card h2 { font-size:15px; font-weight:600; color:var(--text); margin:0 0 12px; letter-spacing:-.01em; }
+  .card h2 .mute, .card h2 span.mute { font-weight:400; font-size:13px; }
+  .big { font-size:24px; font-weight:600; letter-spacing:-.025em; line-height:1.2; margin-bottom:4px; }
   .mute { color:var(--mute); }
-  table { width:100%; border-collapse:collapse; }
-  td, th { padding:6px 4px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  td, th { padding:9px 4px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
   td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
-  .check { display:flex; gap:8px; padding:4px 0; }
+  .check { display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); } .check:last-child { border-bottom:0; }
+  .check b { font-size:11px; padding:2px 8px; border-radius:999px; height:fit-content; margin-top:2px; }
+  .check b.ok { background:var(--okbg); } .check b.bad { background:var(--badbg); }
   .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
-  .msg { border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px; }
-  .msg.rejected { border-color:#7a2d2d; background:#1d1010; }
-  .tag { font-size:11px; font-weight:700; text-transform:uppercase; padding:1px 7px; border-radius:6px; margin-left:6px; }
-  .tag.used { background:#0f2a21; color:var(--ok); } .tag.rejected { background:#3a1414; color:var(--bad); }
-  .tag.ignored, .tag.outdated { background:#2a2414; color:var(--warn); } .tag.partly { background:#1b2240; color:var(--acc); }
-  .call { border:1px solid var(--line); border-radius:10px; margin-bottom:8px; }
-  .call summary { padding:8px 12px; cursor:pointer; display:flex; gap:10px; align-items:center; }
-  .area { font-size:11px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:6px; background:#1b2240; color:var(--acc); }
-  pre { margin:0; padding:10px 12px; white-space:pre-wrap; word-break:break-word; font:12px/1.45 ui-monospace, Consolas, monospace; color:#c9cdd8; border-top:1px solid var(--line); max-height:340px; overflow:auto; }
-  .note { font:12px/1.5 ui-monospace, Consolas, monospace; padding:2px 0; }
-  .run h3 { margin:0 0 8px; font-size:15px; }
-  .empty { padding:60px; text-align:center; color:var(--mute); }
-
-  [data-theme=light] { --bg:#f6f7fb; --card:#ffffff; --line:#e2e5ee; --text:#151821; --mute:#5d6475; --ok:#0f9d6b; --bad:#d23c3c; --warn:#b7791f; --acc:#3b5bdb; }
-  [data-theme=light] pre { color:#2b2f3a; }
-  [data-theme=light] .pill.ok, [data-theme=light] .tag.used { background:#e3f7ef; } [data-theme=light] .pill.bad, [data-theme=light] .tag.rejected { background:#fde8e8; }
-  [data-theme=light] .msg.rejected { background:#fff4f4; } [data-theme=light] .area, [data-theme=light] .tag.partly { background:#e8edff; }
-  header { flex-wrap:wrap; }
-  .iconbtn { background:var(--card); border:1px solid var(--line); color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; font:inherit; }
-  .iconbtn:hover, .tabs button:hover { border-color:var(--acc); }
-  .btn { background:var(--acc); color:#fff; border:0; padding:9px 16px; border-radius:8px; font:inherit; font-weight:600; cursor:pointer; }
-  .btn:disabled { opacity:.55; cursor:wait; }
-  .btn.ghost { background:none; color:var(--text); border:1px solid var(--line); font-weight:500; }
-  #composer { max-width:1300px; margin:16px auto 0; padding:0 22px; }
+  .msg { background:var(--solid); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
+  .msg.rejected { background:var(--badbg); border-color:transparent; }
+  .tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; margin-left:8px; }
+  .tag.used { background:var(--okbg); color:var(--ok); } .tag.rejected { background:var(--badbg); color:var(--bad); }
+  .tag.ignored, .tag.outdated { background:var(--warnbg); color:var(--warn); } .tag.partly { background:var(--accbg); color:var(--acc); }
+  .call { background:var(--solid); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; overflow:hidden; }
+  .call summary { padding:10px 14px; cursor:pointer; display:flex; flex-wrap:wrap; gap:10px; align-items:center; font-size:14px; }
+  .area { font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; background:var(--accbg); color:var(--acc); }
+  pre { margin:0; padding:12px 14px; white-space:pre-wrap; word-break:break-word; font:12px/1.5 "SF Mono", ui-monospace, Menlo, Consolas, monospace; color:var(--mute); border-top:1px solid var(--line); max-height:340px; overflow:auto; }
+  .note { font:12px/1.6 "SF Mono", ui-monospace, Menlo, Consolas, monospace; padding:2px 0; }
+  .run h3 { margin:0 0 10px; font-size:16px; font-weight:600; }
+  .empty { padding:80px 20px; text-align:center; color:var(--mute); font-size:17px; }
+  .iconbtn { background:var(--line); border:0; color:var(--text); padding:6px 14px; border-radius:999px; cursor:pointer; font:inherit; font-size:13px; font-weight:500; transition:background .2s, transform .1s; display:inline-flex; align-items:center; gap:6px; }
+  .iconbtn:hover { background:rgba(0,0,0,.12); } [data-theme=dark] .iconbtn:hover { background:rgba(255,255,255,.18); }
+  .iconbtn:active, .btn:active { transform:scale(.97); }
+  .btn { background:var(--acc); color:#fff; border:0; padding:10px 22px; border-radius:999px; font:inherit; font-weight:500; cursor:pointer; transition:filter .2s, transform .1s; }
+  .btn:hover { filter:brightness(1.08); } .btn:disabled { opacity:.5; cursor:wait; }
+  .btn.ghost { background:var(--line); color:var(--text); }
+  #composer { max-width:1240px; margin:24px auto 0; padding:0 28px; }
   #composer .card { margin:0; }
   .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .row > * { flex:0 0 auto; }
-  input, select, textarea { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; }
-  input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid var(--acc); outline-offset:1px; }
-  textarea { width:100%; min-height:70px; resize:vertical; margin:10px 0; }
-  .mic.on { background:var(--bad); color:#fff; border-color:var(--bad); animation:pulse 1.2s infinite; }
-  @keyframes pulse { 50% { opacity:.6; } }
-  .status { margin-top:8px; font-size:13px; }
-  .bar { display:flex; height:26px; border-radius:8px; overflow:hidden; border:1px solid var(--line); margin:4px 0 8px; }
-  .bar > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; white-space:nowrap; overflow:hidden; min-width:2px; }
-  .legend { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:var(--mute); }
-  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
-  .chg { padding:3px 0; } .chg.up { color:var(--bad); } .chg.down { color:var(--ok); } .chg.same { color:var(--mute); }
-  .card.changed { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc); }
-  .flash { animation:flash 2.2s ease-out 1; }
-  @keyframes flash { 0% { box-shadow:0 0 0 3px var(--acc); } 100% { box-shadow:0 0 0 1px var(--acc); } }
-  .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; margin:0 6px 6px 0; }
-  .badge.ok { background:#0f2a21; color:var(--ok); } .badge.bad { background:#2a1212; color:var(--bad); }
-  [data-theme=light] .badge.ok { background:#e3f7ef; } [data-theme=light] .badge.bad { background:#fde8e8; }
-  .actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-  .actions a, .actions button { font-size:13px; text-decoration:none; }
-  .demo { background:#1b2240; color:var(--acc); padding:8px 22px; font-size:13px; }
-  [data-theme=light] .demo { background:#e8edff; }
-  @media (max-width: 640px) { main, #composer { padding-left:12px; padding-right:12px; } header { padding:10px 12px; } .tabs { width:100%; } .tabs button { flex:1; } }
-  @media print { header .tabs, header .iconbtn, #composer, .actions, .demo { display:none !important; } body { background:#fff; color:#000; } .card { border-color:#ccc; break-inside:avoid; } }
+  input, select, textarea { background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:9px 12px; font:inherit; font-size:14px; transition:border-color .2s, box-shadow .2s; }
+  input:focus, select:focus, textarea:focus { outline:0; border-color:var(--acc); box-shadow:0 0 0 4px var(--accbg); }
+  button:focus-visible, a:focus-visible { outline:3px solid var(--accbg); outline-offset:2px; }
+  textarea { width:100%; min-height:84px; resize:vertical; margin:12px 0; line-height:1.5; }
+  .mic.on { background:var(--bad); color:#fff; animation:pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity:.65; } }
+  .status { margin-top:10px; font-size:14px; }
+  .bar { display:flex; height:30px; border-radius:10px; overflow:hidden; margin:6px 0 10px; gap:2px; background:var(--line); }
+  .bar > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; color:#fff; white-space:nowrap; overflow:hidden; min-width:3px; }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; color:var(--mute); }
+  .legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
+  .chg { padding:4px 0; font-size:14px; } .chg.up { color:var(--bad); } .chg.down { color:var(--ok); } .chg.same { color:var(--text); }
+  .card.changed { box-shadow:var(--shadow), 0 0 0 2px var(--acc); }
+  .flash { animation:flash 2.4s cubic-bezier(.2,.8,.2,1) 1; }
+  @keyframes flash { 0% { transform:scale(1.012); box-shadow:0 0 0 6px var(--accbg), 0 0 0 2px var(--acc); } 100% { transform:none; } }
+  .badge { display:inline-block; padding:4px 12px; border-radius:999px; font-size:13px; font-weight:600; margin:0 6px 8px 0; }
+  .badge.ok { background:var(--okbg); color:var(--ok); } .badge.bad { background:var(--badbg); color:var(--bad); }
+  .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center; }
+  .actions a { text-decoration:none; }
+  .demo { background:var(--accbg); color:var(--acc); padding:10px 28px; font-size:14px; text-align:center; }
+  #app > * { animation:rise .35s ease-out; }
+  @keyframes rise { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+  @media (max-width:640px) { main, #composer { padding-left:14px; padding-right:14px; } header { padding:10px 14px; } .tabs { width:100%; } .tabs button { flex:1; padding:7px 4px; } .big { font-size:21px; } }
+  @media print { header .tabs, header .iconbtn, #composer, .actions, .demo { display:none !important; } body { background:#fff; } .card { box-shadow:none; border:1px solid #ddd; break-inside:avoid; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>MTM Planner</h1>
+  <h1>MTM Planner<small>Hackathon planning, from your inbox</small></h1>
   <span id="valid" class="pill">no plan</span>
   <span id="meta" class="mute"></span>
   <span class="grow"></span>
-  <button class="iconbtn" id="theme" title="Switch light / dark theme" aria-label="Switch theme">◐ Theme</button>
+  <button class="iconbtn" id="theme" title="Switch light / dark theme" aria-label="Switch theme">◐ Appearance</button>
   <button class="iconbtn" onclick="window.print()" title="Print or save the plan as PDF">⎙ Print</button>
   <div class="tabs" role="tablist">
     <button data-tab="plan" class="on">Plan</button>
@@ -98,7 +108,7 @@
 </header>
 <div id="demo" class="demo" hidden>Public demo: this is a saved plan from a real run. To add messages live, run the app locally (npm run ui).</div>
 <section id="composer"><div class="card">
-  <h2>Add a new message <span class="mute" style="text-transform:none;letter-spacing:0">· updates the plan with the same engine as the command line (max 5 model calls)</span></h2>
+  <h2>Got a new message? <span class="mute">Type it, paste it or just say it. The plan updates in seconds and nothing you already have is lost.</span></h2>
   <div class="row">
     <input id="c-sender" placeholder="From (e.g. Accounts, Dean, Caterer)" aria-label="Sender" style="min-width:220px">
     <select id="c-channel" aria-label="Channel"><option>Email</option><option>WhatsApp</option><option>Notice</option></select>
@@ -108,7 +118,7 @@
     <button class="iconbtn mic" id="c-mic" title="Speak the message (browser speech recognition, no model tokens)">🎤 Speak</button>
   </div>
   <textarea id="c-text" placeholder="Type, paste or speak the message. You can also paste whole lines like:  M11 | 12 Nov 2026 | Accounts | Printing is now Rs 6,000.   (Ctrl+Enter to send)" aria-label="Message text"></textarea>
-  <div class="row"><button class="btn" id="c-send">Update plan</button><button class="btn ghost" id="c-clear">Clear</button><span class="mute" id="c-hint"></span></div>
+  <div class="row"><button class="btn" id="c-send">Update my plan</button><button class="btn ghost" id="c-clear">Clear</button><span class="mute" id="c-hint"></span></div>
   <div class="status" id="c-status" aria-live="polite"></div>
 </div></section>
 <main id="app"><div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div></main>
@@ -125,22 +135,22 @@ function planView(s) {
   const ch = diffPlan(s.prevPlan, p);
   const mark = (k) => ch.cards.has(k) ? ` changed ${flashNow ? "flash" : ""}` : "";
   return `${changesCard(s, ch)}<div class="grid"><div>
-    <div class="card${mark("event")}"><h2>Event</h2><div class="big">${p.event.students} students · ${p.event.teams} teams · ${p.event.hours} h</div>
+    <div class="card${mark("event")}"><h2>👥 Who’s coming</h2><div class="big">${p.event.students} students · ${p.event.teams} teams · ${p.event.hours} h</div>
       <div class="mute">${p.event.headcount} people on site = ${p.event.students} students + ${p.event.staff} staff + ${p.judging.judgesNeeded} judges${p.event.extras.map((x) => ` + ${x.n} ${esc(x.who)}`).join("")}</div></div>
-    <div class="card${mark("venue")}"><h2>Venue</h2>${p.venue ? `<div class="big">${esc(p.venue.name)} · ${rs(p.venue.price)}</div><div class="mute">${p.venue.capacity} seats for ${p.event.headcount} people · cheapest of ${p.venue.feasible.length} that fit${p.venue.requiredFeatures.length ? " · needs " + esc(p.venue.requiredFeatures.join(", ")) : ""} · source ${esc(p.venue.source)}</div>${p.venue.notes.map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}` : `<div class="bad">No venue fits</div>`}</div>
-    <div class="card${mark("schedule")}"><h2>Schedule</h2>${timelineBar(p)}<table>${(p.schedule?.blocks ?? []).map((b) => `<tr><td class="mute" style="width:120px">${b.start} – ${b.end}</td><td>${esc(b.name)}</td><td class="num">${b.minutes} min</td></tr>`).join("")}</table>${(p.schedule?.notes ?? []).map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}</div>
-    <div class="card${mark("food")}"><h2>Food</h2>${p.food ? `<div class="big">${p.food.quantity} × ${esc(p.food.option)} @ ${rs(p.food.pricePerHead)}</div><div class="mute">${rs(p.food.cost)} total${p.food.fixed.map((f) => ` · ${esc(f.item)} ${rs(f.amount)}`).join("")}</div>${(p.food.special ?? []).length ? `<div>Of which: ${p.food.special.map((x) => `${x.count} ${esc(x.name)}`).join(", ")} · ${p.food.quantity - p.food.special.reduce((t, x) => t + x.count, 0)} regular</div>` : ""}` : ""}</div>
-    <div class="card${mark("judging")}"><h2>Judging</h2><div class="big">${p.judging.judgesNeeded} of ${p.judging.judgesAvailable} judges</div>
+    <div class="card${mark("venue")}"><h2>📍 Venue</h2>${p.venue ? `<div class="big">${esc(p.venue.name)} · ${rs(p.venue.price)}</div><div class="mute">${p.venue.capacity} seats for ${p.event.headcount} people · cheapest of ${p.venue.feasible.length} that fit${p.venue.requiredFeatures.length ? " · needs " + esc(p.venue.requiredFeatures.join(", ")) : ""} · source ${esc(p.venue.source)}</div>${p.venue.notes.map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}` : `<div class="bad">No venue fits</div>`}</div>
+    <div class="card${mark("schedule")}"><h2>🕘 Schedule</h2>${timelineBar(p)}<table>${(p.schedule?.blocks ?? []).map((b) => `<tr><td class="mute" style="width:120px">${b.start} – ${b.end}</td><td>${esc(b.name)}</td><td class="num">${b.minutes} min</td></tr>`).join("")}</table>${(p.schedule?.notes ?? []).map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}</div>
+    <div class="card${mark("food")}"><h2>🍱 Food</h2>${p.food ? `<div class="big">${p.food.quantity} × ${esc(p.food.option)} @ ${rs(p.food.pricePerHead)}</div><div class="mute">${rs(p.food.cost)} total${p.food.fixed.map((f) => ` · ${esc(f.item)} ${rs(f.amount)}`).join("")}</div>${(p.food.special ?? []).length ? `<div>Of which: ${p.food.special.map((x) => `${x.count} ${esc(x.name)}`).join(", ")} · ${p.food.quantity - p.food.special.reduce((t, x) => t + x.count, 0)} regular</div>` : ""}` : ""}</div>
+    <div class="card${mark("judging")}"><h2>⚖️ Judging</h2><div class="big">${p.judging.judgesNeeded} of ${p.judging.judgesAvailable} judges</div>
       <div class="mute">${p.judging.teams} teams × ${p.judging.judgesPerTeam} judge ÷ max ${p.judging.maxTeamsPerJudge} teams each · ${p.judging.minutesPerTeam} min per team → ${p.judging.judgingMinutes} min · fees ${rs(p.judging.feeTotal)}</div>
       ${p.judging.assignments ? `<details style="margin-top:8px"><summary class="mute" style="cursor:pointer">Show judge → team assignments (${p.judging.assignments.length} judges)</summary><table>${p.judging.assignments.map((a) => `<tr><td>Judge ${a.judge}</td><td class="mute">${a.teams.map((t) => `team ${t.team} (+${t.offset} min)`).join(", ")}</td></tr>`).join("")}</table></details>` : ""}</div>
-    <div class="card${mark("budget")}"><h2>Budget</h2>${budgetBar(p)}<table>${p.budget.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="mute">${esc(l.source)}</td><td class="num">${rs(l.amount)}</td></tr>`).join("")}
+    <div class="card${mark("budget")}"><h2>💰 Budget</h2>${budgetBar(p)}<table>${p.budget.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="mute">${esc(l.source)}</td><td class="num">${rs(l.amount)}</td></tr>`).join("")}
       <tr><th>Total</th><th></th><th class="num">${rs(p.budget.spent)} / ${rs(p.budget.total)}</th></tr></table>
       <div class="mute" style="margin-top:6px">Remaining ${rs(p.budget.remaining)}</div>
       ${p.budget.requests.map((r) => `<div class="warn" style="margin-top:4px">Not included: ${esc(r.item)} ${rs(r.amount)} (request, not approved${r.affordable ? "; would fit" : "; would not fit"})</div>`).join("")}</div>
   </div><div>
-    <div class="card"><h2>Checks</h2>${checkBadges(v)}${(v?.checks ?? []).map((c) => `<div class="check"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "PASS" : "FAIL"}</b><div><div>${esc(c.name)}</div><div class="mute">${esc(c.detail)}</div></div></div>`).join("")}</div>
-    <div class="card"><h2>Rejected messages (${rejected.length})</h2>${rejected.length ? rejected.map(msgView).join("") : `<div class="mute">None</div>`}</div>
-    ${p.assumptions.length ? `<div class="card"><h2>Assumptions &amp; conflicts</h2>${p.assumptions.map((a) => `<div class="${a.startsWith("CONFLICT") ? "warn" : "mute"}">• ${esc(a)}</div>`).join("")}</div>` : ""}
+    <div class="card"><h2>✅ Checks</h2>${checkBadges(v)}${(v?.checks ?? []).map((c) => `<div class="check"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "PASS" : "FAIL"}</b><div><div>${esc(c.name)}</div><div class="mute">${esc(c.detail)}</div></div></div>`).join("")}</div>
+    <div class="card"><h2>🚫 Messages we couldn’t use (${rejected.length})</h2>${rejected.length ? rejected.map(msgView).join("") : `<div class="mute">None</div>`}</div>
+    ${p.assumptions.length ? `<div class="card"><h2>💡 Assumptions &amp; conflicts</h2>${p.assumptions.map((a) => `<div class="${a.startsWith("CONFLICT") ? "warn" : "mute"}">• ${esc(a)}</div>`).join("")}</div>` : ""}
   </div></div>`;
 }
 function msgView(m) {
@@ -193,11 +203,11 @@ function changesCard(s, ch) {
   const r = s.runs.at(-1);
   if (!s.prevPlan || !r) return "";
   const why = r.notes.filter((n) => n.kind !== "info").map((n) => `<div class="${n.kind === "rejected" ? "bad" : "warn"}">• ${esc(n.text)}</div>`).join("");
-  return `<div class="card${ch.out.length ? " changed" : ""}"><h2>What changed in the last update <span class="mute" style="text-transform:none;letter-spacing:0">· ${esc(r.source)} · ${r.calls.length} model calls · ${r.totalTokens} tokens · ${((r.runMs ?? 0) / 1000).toFixed(1)} s</span></h2>
-    ${ch.out.length ? ch.out.map((c) => `<div class="chg ${c.dir}">${c.arrow ?? "•"} ${esc(c.text)}</div>`).join("") : `<div class="mute">The plan did not change.</div>`}${why}</div>`;
+  return `<div class="card${ch.out.length ? " changed" : ""}"><h2>Here’s what changed <span class="mute">· ${esc(r.source)} · ${r.calls.length} model call${r.calls.length === 1 ? "" : "s"} · ${r.totalTokens} tokens · ${((r.runMs ?? 0) / 1000).toFixed(1)} s</span></h2>
+    ${ch.out.length ? ch.out.map((c) => `<div class="chg ${c.dir}">${c.arrow ?? "•"} ${esc(c.text)}</div>`).join("") : `<div class="mute">Nothing in the plan needed to change.</div>`}${why}</div>`;
 }
 // ---------- visuals ----------
-const PAL = ["#7c9cff", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#38bdf8", "#fb923c", "#4ade80", "#e879f9"];
+const PAL = ["#0071e3", "#34c759", "#ff9500", "#af52de", "#ff2d55", "#5ac8fa", "#ffcc00", "#5856d6", "#a2845e"];
 function budgetBar(p) {
   const total = p.budget.total || p.budget.spent || 1;
   const segs = p.budget.lines.map((l, i) => ({ w: l.amount / total * 100, c: PAL[i % PAL.length], t: `${l.item}: ${rs(l.amount)}` }));
@@ -208,9 +218,9 @@ function budgetBar(p) {
 }
 function timelineBar(p) {
   const bl = p.schedule?.blocks ?? []; const tot = bl.reduce((t, b) => t + b.minutes, 0) || 1;
-  const col = (b) => b.isJudging ? "#a78bfa" : b.build ? "#34d399" : b.fixed ? "#fbbf24" : /lunch|break/i.test(b.name) ? "#38bdf8" : "#7c9cff";
-  return `<div class="bar" role="img" aria-label="Schedule timeline">${bl.map((b) => `<div style="width:${b.minutes / tot * 100}%;background:${col(b)}" title="${esc(`${b.start}–${b.end} ${b.name} (${b.minutes} min)`)}">${b.minutes / tot > .09 ? esc(b.name) : ""}</div>`).join("")}</div>
-    <div class="legend"><span><i style="background:#7c9cff"></i>Opening/closing</span><span><i style="background:#34d399"></i>Build</span><span><i style="background:#38bdf8"></i>Lunch/break</span><span><i style="background:#fbbf24"></i>Fixed by a message</span><span><i style="background:#a78bfa"></i>Judging</span></div><div style="height:8px"></div>`;
+  const col = (b) => b.isJudging ? "#af52de" : b.build ? "#34c759" : b.fixed ? "#ff9500" : /lunch|break/i.test(b.name) ? "#5ac8fa" : "#0071e3";
+  return `<div class="bar" role="img" aria-label="Schedule timeline">${bl.map((b) => `<div style="width:${b.minutes / tot * 100}%;background:${col(b)}" title="${esc(`${b.start}–${b.end} ${b.name} (${b.minutes} min)`)}">${b.minutes / tot > .09 ? esc(b.name.replace(/\s*\(.*\)/, "")) : ""}</div>`).join("")}</div>
+    <div class="legend"><span><i style="background:#0071e3"></i>Opening/closing</span><span><i style="background:#34c759"></i>Build</span><span><i style="background:#5ac8fa"></i>Lunch/break</span><span><i style="background:#ff9500"></i>Fixed by a message</span><span><i style="background:#af52de"></i>Judging</span></div><div style="height:8px"></div>`;
 }
 function checkBadges(v) {
   const c = v?.checks ?? []; const n = c.filter((x) => x.ok).length;
@@ -232,7 +242,7 @@ async function tick() {
     const app = document.getElementById("app");
     if (!s) { app.innerHTML = `<div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div>`; return; }
     const ok = s.validation?.ok;
-    const v = document.getElementById("valid"); v.textContent = ok ? "PLAN VALID" : "PLAN INVALID"; v.className = "pill " + (ok ? "ok" : "bad");
+    const v = document.getElementById("valid"); v.textContent = ok ? "✓ Plan is ready" : "! Plan needs attention"; v.className = "pill " + (ok ? "ok" : "bad");
     const model = s.runs.at(-1)?.calls.at(-1)?.model ?? "";
     document.getElementById("meta").textContent = `${model} · ${s.runs.reduce((t, r) => t + r.totalTokens, 0).toLocaleString()} tokens · ${s.messages.length} messages`;
     window.__s = s;
@@ -246,8 +256,8 @@ document.addEventListener("click", async (e) => {
   setTimeout(() => (b.textContent = "⧉ Copy"), 1500);
 });
 // ---------- theme ----------
-try { if (localStorage.getItem("theme") === "light") document.documentElement.dataset.theme = "light"; } catch {}
-document.getElementById("theme").onclick = () => { const l = document.documentElement.dataset.theme !== "light"; document.documentElement.dataset.theme = l ? "light" : ""; try { localStorage.setItem("theme", l ? "light" : "dark"); } catch {} };
+try { if (localStorage.getItem("theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch {}
+document.getElementById("theme").onclick = () => { const d = document.documentElement.dataset.theme !== "dark"; document.documentElement.dataset.theme = d ? "dark" : ""; try { localStorage.setItem("theme", d ? "dark" : "light"); } catch {} };
 // ---------- composer: type, paste or speak a new message ----------
 const $ = (id) => document.getElementById(id);
 $("c-date").valueAsDate = new Date();
@@ -261,18 +271,18 @@ function composed() {
 }
 async function send() {
   const text = composed(); const st = $("c-status");
-  if (!text) { st.innerHTML = `<span class="warn">Write or speak a message first.</span>`; $("c-text").focus(); return; }
-  $("c-send").disabled = true; $("c-send").textContent = "Updating…"; st.innerHTML = `<span class="mute">Reading the message and re-planning…</span>`;
+  if (!text) { st.innerHTML = `<span class="warn">Type or say a message first.</span>`; $("c-text").focus(); return; }
+  $("c-send").disabled = true; $("c-send").textContent = "Updating…"; st.innerHTML = `<span class="mute">Reading your message and updating the plan…</span>`;
   try {
     const r = await fetch("/api/message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.statusText);
-    st.innerHTML = `<span class="${j.valid ? "ok" : "bad"}">${j.valid ? "✓ Plan updated and valid" : "Plan kept, but it is not valid — see checks"}</span> <span class="mute">· ${j.calls} model calls · ${j.tokens} tokens · ${(j.ms / 1000).toFixed(1)} s</span>` +
+    st.innerHTML = `<span class="${j.valid ? "ok" : "bad"}">${j.valid ? "✓ Done — your plan is updated and still valid" : "Plan kept, but it is not valid — see checks"}</span> <span class="mute">· ${j.calls} model call${j.calls === 1 ? "" : "s"} · ${j.tokens} tokens · ${(j.ms / 1000).toFixed(1)} s</span>` +
       j.notes.map((n) => `<div class="${n.startsWith("[rejected]") ? "bad" : "warn"}">${esc(n)}</div>`).join("");
     $("c-text").value = ""; tab = "plan"; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === "plan")); last = ""; await tick();
     window.scrollTo({ top: $("app").offsetTop - 70, behavior: "smooth" });
   } catch (e) { st.innerHTML = `<span class="bad">Could not update: ${esc(e.message)}</span>`; }
-  finally { $("c-send").disabled = false; $("c-send").textContent = "Update plan"; }
+  finally { $("c-send").disabled = false; $("c-send").textContent = "Update my plan"; }
 }
 $("c-send").onclick = send;
 $("c-clear").onclick = () => { $("c-text").value = ""; $("c-status").textContent = ""; };
