@@ -28,7 +28,7 @@ const dateRank = (d) => { const t = d ? Date.parse(d) : NaN; return Number.isNaN
 export async function run(state, text, source = "input") {
   const isFirst = state.processed.length === 0;
   const trace = {
-    calls: [], notes: [], kind: isFirst ? "full run" : "update", source, model: modelName(), started: new Date().toISOString(),
+    t0: Date.now(), calls: [], notes: [], kind: isFirst ? "full run" : "update", source, model: modelName(), started: new Date().toISOString(),
     // brief limits: full run cut at 2 min; update at most 5 model calls and 1 min. We stop early with margin.
     deadline: Date.now() + (isFirst ? 110000 : 52000), maxCalls: isFirst ? 0 : 5,
   };
@@ -159,6 +159,7 @@ function finish(state, trace) {
   for (const c of trace.calls) c.n = ++state.callCount;
   const tokens = trace.calls.reduce((s, c) => s + c.tokens.total, 0);
   trace.totalTokens = tokens;
-  state.runs.push({ kind: trace.kind, source: trace.source, at: trace.started, calls: trace.calls, notes: trace.notes, totalTokens: tokens, valid: state.validation?.ok ?? false });
+  trace.runMs = Date.now() - (trace.t0 ?? Date.now());
+  state.runs.push({ kind: trace.kind, source: trace.source, at: trace.started, calls: trace.calls, notes: trace.notes, totalTokens: tokens, runMs: trace.runMs, valid: state.validation?.ok ?? false });
   return trace;
 }
