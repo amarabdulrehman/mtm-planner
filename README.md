@@ -2,6 +2,14 @@
 
 Reads a pack of messages (emails, WhatsApp texts, notices, in English or Roman Urdu) and plans a 4-hour hackathon: **venue, schedule, food, judging, budget**. Built at MTM Version 2.0, GDGoC CUI Wah.
 
+
+## Submission files (judges' test pack)
+- **One file with the plan + AI call lines:** [`SUBMISSION.txt`](SUBMISSION.txt)
+- **Plan** (venue, schedule, food, judging, budget): [`SUBMIT_plan.md`](SUBMIT_plan.md)
+- **AI calls trace** (every model call: model, area, system prompt, input, output, tokens, time): [`SUBMIT_ai_calls_trace.txt`](SUBMIT_ai_calls_trace.txt)
+- Test pack used: [`judging_pack.txt`](judging_pack.txt) · run with `npm run reset` then `npm run plan -- judging_pack.txt`
+- Live demo: https://mtm-planner.vercel.app
+
 ## Run
 
 ```bash
