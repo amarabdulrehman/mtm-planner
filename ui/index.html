@@ -4,350 +4,580 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MTM Planner</title>
+<meta name="theme-color" content="#FAF9F7" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2319191B'/><text x='16' y='22' font-size='17' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>M</text></svg>" />
 <style>
   :root {
-    --bg:#f5f5f7; --card:rgba(255,255,255,.86); --solid:#fff; --line:rgba(0,0,0,.08); --text:#1d1d1f; --mute:#6e6e73;
-    --ok:#248a3d; --okbg:#e8f7ec; --bad:#d70015; --badbg:#ffeceb; --warn:#b25000; --warnbg:#fff4e5; --acc:#0071e3; --accbg:#e8f1fd;
-    --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); --glass:rgba(245,245,247,.72); --field:#fff;
+    --canvas:#FAF9F7; --surface:#FFFFFF; --ink:#19191B; --muted:#6B6A66; --line:#DAD8D3; --soft:#F1EFEB;
+    --acc:#2457C5; --acc-soft:#E9EEF9; --ok:#1F7A4D; --ok-soft:#E7F3EC; --bad:#B42318; --bad-soft:#FBECEA; --warn:#8A5300; --warn-soft:#FBF1E1;
     color-scheme: light;
   }
   [data-theme=dark] {
-    --bg:#000; --card:rgba(28,28,30,.9); --solid:#1c1c1e; --line:rgba(255,255,255,.1); --text:#f5f5f7; --mute:#98989d;
-    --ok:#30d158; --okbg:rgba(48,209,88,.14); --bad:#ff453a; --badbg:rgba(255,69,58,.14); --warn:#ff9f0a; --warnbg:rgba(255,159,10,.14); --acc:#0a84ff; --accbg:rgba(10,132,255,.16);
-    --shadow:0 0 0 1px rgba(255,255,255,.06); --glass:rgba(22,22,23,.72); --field:#2c2c2e; color-scheme: dark;
+    --canvas:#141416; --surface:#1C1C1F; --ink:#EDECE9; --muted:#A09F9A; --line:#34343A; --soft:#232327;
+    --acc:#8FB0F5; --acc-soft:#1F2A44; --ok:#5FC08A; --ok-soft:#173025; --bad:#F2877B; --bad-soft:#3A1E1B; --warn:#E3B160; --warn-soft:#33281A;
+    color-scheme: dark;
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.47 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing:antialiased; letter-spacing:-.01em; }
-  header { display:flex; flex-wrap:wrap; gap:14px; align-items:center; padding:12px 28px; position:sticky; top:0; z-index:5; background:var(--glass); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid var(--line); }
-  h1 { font-size:21px; font-weight:600; margin:0; letter-spacing:-.02em; }
-  h1 small { display:block; font-size:12px; font-weight:400; color:var(--mute); letter-spacing:0; }
-  .pill { padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; background:var(--line); color:var(--mute); }
-  .pill.ok { color:var(--ok); background:var(--okbg); } .pill.bad { color:var(--bad); background:var(--badbg); }
+  [hidden] { display:none !important; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--canvas); color:var(--ink); font:15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
+  .num, td.num, .stat b, .money { font-variant-numeric:tabular-nums; }
+  a { color:var(--acc); }
+  button { font:inherit; color:inherit; }
+  :focus-visible { outline:2px solid var(--acc); outline-offset:2px; border-radius:4px; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .skip { position:absolute; left:-999px; top:8px; background:var(--surface); padding:8px 12px; border:1px solid var(--line); z-index:20; }
+  .skip:focus { left:12px; }
+  .muted { color:var(--muted); }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 28px; }
+
+  /* top bar */
+  .top { position:sticky; top:0; z-index:10; background:var(--canvas); border-bottom:1px solid var(--line); }
+  .top .wrap { display:flex; align-items:center; gap:18px; min-height:58px; flex-wrap:wrap; }
+  .brand { font-weight:650; font-size:16px; letter-spacing:-.01em; color:var(--ink); text-decoration:none; }
+  .ctx { font-size:12px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:2px 10px; white-space:nowrap; }
+  nav.tabs { display:flex; gap:2px; }
+  nav.tabs button { background:none; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; color:var(--muted); font-weight:500; }
+  nav.tabs button[aria-selected=true] { color:var(--ink); background:var(--soft); }
+  nav.tabs .count { font-size:11px; margin-left:4px; color:var(--bad); }
   .grow { flex:1; }
-  .tabs { display:flex; padding:2px; background:var(--line); border-radius:10px; }
-  .tabs button { background:none; border:0; color:var(--text); padding:6px 16px; border-radius:8px; cursor:pointer; font:inherit; font-size:13px; font-weight:500; transition:background .2s, box-shadow .2s; }
-  .tabs button.on { background:var(--solid); box-shadow:0 1px 3px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04); }
-  main { padding:24px 28px 60px; max-width:1240px; margin:0 auto; }
-  .grid { display:grid; grid-template-columns:1.45fr 1fr; gap:20px; align-items:start; }
-  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
-  .card { background:var(--card); border-radius:18px; padding:20px 22px; margin-bottom:20px; box-shadow:var(--shadow); transition:box-shadow .4s, transform .4s; }
-  .card h2 { font-size:15px; font-weight:600; color:var(--text); margin:0 0 12px; letter-spacing:-.01em; }
-  .card h2 .mute, .card h2 span.mute { font-weight:400; font-size:13px; }
-  .big { font-size:24px; font-weight:600; letter-spacing:-.025em; line-height:1.2; margin-bottom:4px; }
-  .mute { color:var(--mute); }
+  .btn { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:8px 14px; border-radius:8px; cursor:pointer; font-weight:500; font-size:14px; text-decoration:none; white-space:nowrap; }
+  .btn:hover { border-color:var(--muted); }
+  .btn.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  [data-theme=dark] .btn.primary { color:#0E1630; }
+  .btn.primary:hover { filter:brightness(1.07); }
+  .btn.quiet { border-color:transparent; background:none; color:var(--muted); padding:8px 10px; }
+  .btn.quiet:hover { color:var(--ink); }
+  .btn:disabled { opacity:.55; cursor:not-allowed; }
+  .linkbtn { background:none; border:0; padding:0; color:var(--acc); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+
+  main { padding:28px 0 80px; }
+  #notice:not(:empty) { margin-top:4px; }
+  .notice { border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:14px; }
+  .notice.example { border-left:3px solid var(--acc); }
+  .notice.error { border-left:3px solid var(--bad); }
+
+  /* lead: event summary + latest decision */
+  .lead { display:flex; gap:24px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; padding-bottom:20px; }
+  .eyebrow { font-size:13px; color:var(--muted); margin:0 0 6px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .status { font-weight:600; }
+  .status.ok { color:var(--ok); } .status.bad { color:var(--bad); }
+  h1 { font-size:clamp(26px,3.4vw,36px); line-height:1.15; letter-spacing:-.02em; margin:0; font-weight:650; }
+  .lead p.sub { margin:8px 0 0; color:var(--muted); font-size:15px; }
+  .decision { scroll-margin-top:84px; background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--acc); border-radius:10px; padding:16px 20px; margin-bottom:22px; }
+  .decision.rejected { border-left-color:var(--bad); }
+  .decision.accepted { border-left-color:var(--ok); }
+  .decision.mixed { border-left-color:var(--warn); }
+  .decision.pending { border-left-color:var(--muted); }
+  .decision .d-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+  .decision .d-head { font-size:20px; font-weight:650; letter-spacing:-.01em; }
+  .decision.rejected .d-head { color:var(--bad); } .decision.accepted .d-head { color:var(--ok); } .decision.mixed .d-head { color:var(--warn); }
+  .decision p { margin:6px 0 0; max-width:820px; }
+  .decision ul { margin:8px 0 0; padding-left:18px; }
+  .decision .d-links { display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:14px; }
+  .decision .d-meta { font-size:12px; color:var(--muted); margin-top:10px; }
+
+  /* stats strip */
+  .stats { display:grid; grid-template-columns:repeat(5,1fr); border:1px solid var(--line); border-radius:10px; background:var(--surface); margin:0 0 32px; }
+  .stat { padding:14px 16px; border-left:1px solid var(--line); min-width:0; }
+  .stat:first-child { border-left:0; }
+  .stat .k { font-size:12px; color:var(--muted); }
+  .stat b { display:block; font-size:19px; font-weight:650; letter-spacing:-.01em; margin-top:2px; }
+  .stat .v { font-size:13px; color:var(--muted); }
+  .stat .v.ok { color:var(--ok); } .stat .v.bad { color:var(--bad); }
+  .meter { height:4px; background:var(--soft); border-radius:2px; margin-top:8px; overflow:hidden; }
+  .meter i { display:block; height:100%; background:var(--ink); }
+
+  /* composer */
+  .composer { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin:0 0 28px; }
+  .composer .c-head { display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+  .composer h2 { font-size:17px; margin:0; }
+  textarea, input, select { font:inherit; color:var(--ink); background:var(--canvas); border:1px solid var(--line); border-radius:8px; padding:10px 12px; width:100%; }
+  textarea { min-height:110px; resize:vertical; line-height:1.5; }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--acc); outline-offset:0; border-color:transparent; }
+  details.c-details { margin-top:10px; }
+  details.c-details summary { cursor:pointer; color:var(--muted); font-size:14px; padding:4px 0; }
+  .fields { display:grid; grid-template-columns:2fr 1fr 1fr 1.2fr auto; gap:10px; margin-top:10px; align-items:end; }
+  .fields label { font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+  .c-actions { display:flex; gap:12px; align-items:center; margin-top:14px; flex-wrap:wrap; }
+  .c-status { margin-top:10px; font-size:14px; }
+  .c-status .bad { color:var(--bad); } .c-status .ok { color:var(--ok); }
+  .c-secondary { display:flex; gap:8px; flex-wrap:wrap; align-items:center; border-top:1px solid var(--line); margin-top:16px; padding-top:14px; }
+  .c-secondary .label { font-size:12px; color:var(--muted); margin-right:4px; }
+  .mic.on { color:var(--bad); border-color:var(--bad); }
+
+  /* plan body */
+  .cols { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:44px; align-items:start; }
+  section.part { padding:4px 0 26px; border-top:1px solid var(--line); margin-top:4px; }
+  section.part:first-child { border-top:0; }
+  section.part h2 { font-size:13px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:18px 0 10px; font-weight:600; }
+  .big { font-size:20px; font-weight:600; letter-spacing:-.01em; }
+  .pair { display:flex; gap:28px; flex-wrap:wrap; margin-top:8px; }
+  .pair div { font-size:14px; } .pair b { font-size:16px; display:block; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
-  td, th { padding:9px 4px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-  tr:last-child td { border-bottom:0; }
-  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
-  .check { display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); } .check:last-child { border-bottom:0; }
-  .check b { font-size:11px; padding:2px 8px; border-radius:999px; height:fit-content; margin-top:2px; }
-  .check b.ok { background:var(--okbg); } .check b.bad { background:var(--badbg); }
-  .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
-  .msg { background:var(--solid); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
-  .msg.rejected { background:var(--badbg); border-color:transparent; }
-  .tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; margin-left:8px; }
-  .tag.used { background:var(--okbg); color:var(--ok); } .tag.rejected { background:var(--badbg); color:var(--bad); }
-  .tag.ignored, .tag.outdated { background:var(--warnbg); color:var(--warn); } .tag.partly { background:var(--accbg); color:var(--acc); }
-  .call { background:var(--solid); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; overflow:hidden; }
-  .call summary { padding:10px 14px; cursor:pointer; display:flex; flex-wrap:wrap; gap:10px; align-items:center; font-size:14px; }
-  .area { font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; background:var(--accbg); color:var(--acc); }
-  pre { margin:0; padding:12px 14px; white-space:pre-wrap; word-break:break-word; font:12px/1.5 "SF Mono", ui-monospace, Menlo, Consolas, monospace; color:var(--mute); border-top:1px solid var(--line); max-height:340px; overflow:auto; }
-  .note { font:12px/1.6 "SF Mono", ui-monospace, Menlo, Consolas, monospace; padding:2px 0; }
-  .run h3 { margin:0 0 10px; font-size:16px; font-weight:600; }
-  .empty { padding:80px 20px; text-align:center; color:var(--mute); font-size:17px; }
-  .iconbtn { background:var(--line); border:0; color:var(--text); padding:6px 14px; border-radius:999px; cursor:pointer; font:inherit; font-size:13px; font-weight:500; transition:background .2s, transform .1s; display:inline-flex; align-items:center; gap:6px; }
-  .iconbtn:hover { background:rgba(0,0,0,.12); } [data-theme=dark] .iconbtn:hover { background:rgba(255,255,255,.18); }
-  .iconbtn:active, .btn:active { transform:scale(.97); }
-  .btn { background:var(--acc); color:#fff; border:0; padding:10px 22px; border-radius:999px; font:inherit; font-weight:500; cursor:pointer; transition:filter .2s, transform .1s; }
-  .btn:hover { filter:brightness(1.08); } .btn:disabled { opacity:.5; cursor:wait; }
-  .btn.ghost { background:var(--line); color:var(--text); }
-  #composer { max-width:1240px; margin:24px auto 0; padding:0 28px; }
-  #composer .card { margin:0; }
-  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  input, select, textarea { background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:9px 12px; font:inherit; font-size:14px; transition:border-color .2s, box-shadow .2s; }
-  input:focus, select:focus, textarea:focus { outline:0; border-color:var(--acc); box-shadow:0 0 0 4px var(--accbg); }
-  button:focus-visible, a:focus-visible { outline:3px solid var(--accbg); outline-offset:2px; }
-  textarea { width:100%; min-height:84px; resize:vertical; margin:12px 0; line-height:1.5; }
-  .mic.on { background:var(--bad); color:#fff; animation:pulse 1.2s infinite; }
-  @keyframes pulse { 50% { opacity:.65; } }
-  .status { margin-top:10px; font-size:14px; }
-  .bar { display:flex; height:30px; border-radius:10px; overflow:hidden; margin:6px 0 10px; gap:2px; background:var(--line); }
-  .bar > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; color:#fff; white-space:nowrap; overflow:hidden; min-width:3px; }
-  .legend { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; color:var(--mute); }
-  .legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
-  .chg { padding:4px 0; font-size:14px; } .chg.up { color:var(--bad); } .chg.down { color:var(--ok); } .chg.same { color:var(--text); }
-  .card.changed { box-shadow:var(--shadow), 0 0 0 2px var(--acc); }
-  .flash { animation:flash 2.4s cubic-bezier(.2,.8,.2,1) 1; }
-  @keyframes flash { 0% { transform:scale(1.012); box-shadow:0 0 0 6px var(--accbg), 0 0 0 2px var(--acc); } 100% { transform:none; } }
-  .badge { display:inline-block; padding:4px 12px; border-radius:999px; font-size:13px; font-weight:600; margin:0 6px 8px 0; }
-  .badge.ok { background:var(--okbg); color:var(--ok); } .badge.bad { background:var(--badbg); color:var(--bad); }
-  .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center; }
-  .actions a { text-decoration:none; }
-  .demo { background:var(--accbg); color:var(--acc); padding:10px 28px; font-size:14px; text-align:center; }
-  #app > * { animation:rise .35s ease-out; }
-  @keyframes rise { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
-  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
-  @media (max-width:640px) { main, #composer { padding-left:14px; padding-right:14px; } header { padding:10px 14px; } .tabs { width:100%; } .tabs button { flex:1; padding:7px 4px; } .big { font-size:21px; } }
-  @media print { header .tabs, header .iconbtn, #composer, .actions, .demo { display:none !important; } body { background:#fff; } .card { box-shadow:none; border:1px solid #ddd; break-inside:avoid; } }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; color:var(--muted); font-weight:500; }
+  td.num, th.num { text-align:right; white-space:nowrap; }
+  tr.total td { font-weight:650; border-bottom:0; }
+  .note { font-size:13px; color:var(--muted); margin-top:6px; }
+  .timeline { display:flex; height:10px; border-radius:5px; overflow:hidden; gap:2px; margin:6px 0 12px; }
+  .timeline i { display:block; height:100%; background:var(--line); }
+  .timeline i.build { background:var(--ink); } .timeline i.judge { background:var(--acc); } .timeline i.fixed { background:var(--warn); } .timeline i.meal { background:var(--muted); }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .legend span::before { content:""; display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px; background:var(--c); }
+  td .tag { margin-left:6px; }
+  .tag { display:inline-block; font-size:11px; font-weight:600; padding:1px 7px; border-radius:4px; background:var(--soft); color:var(--muted); }
+  .tag.fixed { background:var(--warn-soft); color:var(--warn); }
+  .tag.used { background:var(--ok-soft); color:var(--ok); } .tag.rejected { background:var(--bad-soft); color:var(--bad); }
+  .tag.outdated, .tag.superseded, .tag.conflict { background:var(--warn-soft); color:var(--warn); }
+  .tag.changed { background:var(--acc-soft); color:var(--acc); }
+  aside .block { padding:4px 0 22px; border-top:1px solid var(--line); }
+  aside .block:first-child { border-top:0; }
+  aside h2 { font-size:13px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:18px 0 10px; font-weight:600; }
+  .check { display:grid; grid-template-columns:44px 1fr; gap:6px; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .check:last-child { border-bottom:0; }
+  .check .r { font-size:11px; font-weight:700; padding-top:2px; } .check .r.ok { color:var(--ok); } .check .r.bad { color:var(--bad); }
+  .rej { padding:8px 0; border-bottom:1px solid var(--line); font-size:14px; } .rej:last-child { border-bottom:0; }
+  .changes { margin:0; padding:0; list-style:none; }
+  .changes li { padding:3px 0; font-size:14px; }
+
+  /* messages, trace, outbox */
+  .filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; }
+  .filters button { border:1px solid var(--line); background:var(--surface); border-radius:999px; padding:5px 12px; cursor:pointer; font-size:13px; }
+  .filters button[aria-pressed=true] { background:var(--ink); color:var(--canvas); border-color:var(--ink); }
+  .msg { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+  .msg.hl { outline:2px solid var(--acc); }
+  .msg .m-head { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .msg .m-head b { font-size:15px; }
+  .quote { margin:10px 0 0; padding:10px 12px; background:var(--soft); border-radius:8px; white-space:pre-wrap; font-size:14px; }
+  .msg .k { font-size:12px; color:var(--muted); margin-top:10px; }
+  .msg .reason { margin-top:4px; font-size:14px; } .msg .reason.bad { color:var(--bad); }
+  .summaryline { display:flex; gap:24px; flex-wrap:wrap; font-size:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:10px; margin-bottom:18px; }
+  .summaryline b { font-variant-numeric:tabular-nums; }
+  .run { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+  .run h3 { margin:0 0 10px; font-size:15px; }
+  .calls td, .calls th { font-size:13px; }
+  details.io { margin:4px 0 10px; }
+  details.io summary { cursor:pointer; font-size:13px; color:var(--acc); }
+  pre { margin:8px 0 0; padding:10px 12px; background:var(--soft); border-radius:8px; white-space:pre-wrap; word-break:break-word; font:12px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; max-height:340px; overflow:auto; }
+  .notes { margin:10px 0 0; padding:0; list-style:none; font:12.5px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .notes .rejected, .notes .error { color:var(--bad); } .notes .info { color:var(--muted); }
+  .draft { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+  .draft .body { white-space:pre-wrap; margin-top:8px; font-size:14px; }
+  .draft .acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .empty { padding:56px 0; max-width:640px; }
+  .empty h1 { margin-bottom:8px; }
+
+  @media (max-width: 980px) { .cols { grid-template-columns:1fr; gap:0; } .stats { grid-template-columns:repeat(2,1fr); } .stat:nth-child(odd) { border-left:0; } .stat:nth-child(n+3) { border-top:1px solid var(--line); } .stat:last-child { grid-column:span 2; } .fields { grid-template-columns:1fr 1fr; } .fields .wide { grid-column:span 2; } }
+  @media (max-width: 640px) { .wrap { padding:0 16px; } main { padding-top:18px; } .top .wrap { gap:8px; padding-top:8px; padding-bottom:6px; } nav.tabs { order:3; width:100%; overflow-x:auto; } .hide-sm { display:none; } .lead { align-items:flex-start; padding-bottom:14px; } .decision { padding:14px 16px; } .decision .d-head { font-size:18px; } }
+  @media print { .top, .composer, .lead-actions, .decision .d-links, #notice, .filters { display:none !important; } body { background:#fff; color:#000; } .cols { grid-template-columns:1fr 1fr; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>MTM Planner<small>Hackathon planning, from your inbox</small></h1>
-  <span id="valid" class="pill">no plan</span>
-  <span id="meta" class="mute"></span>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/" id="brand">MTM Planner</a>
+  <span class="ctx hide-sm" id="ctx" hidden></span>
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" data-tab="plan" aria-selected="true">Plan</button>
+    <button role="tab" data-tab="messages" aria-selected="false">Messages<span class="count" id="rejcount"></span></button>
+    <button role="tab" data-tab="trace" aria-selected="false">Trace</button>
+    <button role="tab" data-tab="outbox" aria-selected="false">Outbox</button>
+  </nav>
   <span class="grow"></span>
-  <button class="iconbtn" id="theme" title="Switch light / dark theme" aria-label="Switch theme">◐ Appearance</button>
-  <button class="iconbtn" onclick="window.print()" title="Print or save the plan as PDF">⎙ Print</button>
-  <div class="tabs" role="tablist">
-    <button data-tab="plan" class="on">Plan</button>
-    <button data-tab="messages">Messages</button>
-    <button data-tab="trace">Trace</button>
-    <button data-tab="outbox">Outbox</button>
-  </div>
-</header>
-<div id="demo" class="demo" hidden>Public demo: this is a saved plan from a real run. To add messages live, run the app locally (npm run ui).</div>
-<section id="composer"><div class="card">
-  <h2>Got a new message? <span class="mute">Type it, paste it or just say it. The plan updates in seconds and nothing you already have is lost.</span></h2>
-  <div class="row">
-    <input id="c-sender" placeholder="From (e.g. Accounts, Dean, Caterer)" aria-label="Sender" style="min-width:220px">
-    <select id="c-channel" aria-label="Channel"><option>Email</option><option>WhatsApp</option><option>Notice</option></select>
-    <input id="c-date" type="date" aria-label="Message date">
-    <span class="grow"></span>
-    <select id="c-lang" aria-label="Voice language" title="Voice input language"><option value="en-US">Voice: English</option><option value="ur-PK">Voice: Urdu</option></select>
-    <button class="iconbtn mic" id="c-mic" title="Speak the message (browser speech recognition, no model tokens)">🎤 Speak</button>
-  </div>
-  <textarea id="c-text" placeholder="Type, paste or speak the message. You can also paste whole lines like:  M11 | 12 Nov 2026 | Accounts | Printing is now Rs 6,000.   (Ctrl+Enter to send)" aria-label="Message text"></textarea>
-  <div class="row"><button class="btn" id="c-send">Update my plan</button>
-    <button class="btn ghost cloud-only" id="c-new" hidden title="Plan from scratch using everything in the box">Start a new plan</button>
-    <label class="btn ghost cloud-only" hidden style="cursor:pointer">Load .txt<input type="file" id="c-file" accept=".txt,text/plain" hidden></label>
-    <button class="btn ghost" id="c-clear">Clear</button><span class="grow"></span>
-    <button class="iconbtn cloud-only" id="c-reset" hidden title="Forget your changes and show the saved demo plan">↺ Reset demo</button></div>
-  <div class="status" id="c-status" aria-live="polite"></div>
-</div></section>
-<main id="app"><div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div></main>
-<script>
-let tab = "plan", last = "";
+  <button class="btn" id="download" aria-label="Download plan and full trace" title="One text file: final plan, every run and model call, rejected-message reasons, reply drafts">Download<span class="hide-sm" style="margin-left:-2px">plan &amp; full trace</span></button>
+  <button class="btn quiet hide-sm" id="print">Print</button>
+  <button class="btn quiet" id="theme" aria-label="Switch light or dark theme">Dark</button>
+</div></header>
+
+<main id="main" class="wrap" tabindex="-1">
+  <div id="notice"></div>
+  <section id="v-plan">
+    <div id="lead"></div>
+    <div class="composer" id="composer" hidden>
+      <div class="c-head"><h2 id="c-title">Add a message</h2><span class="muted" id="c-sub">It updates the plan with the same engine as the command line: at most 5 model calls.</span><span class="grow"></span><button class="btn quiet" id="c-close">Close</button></div>
+      <label class="sr" for="c-text">Message text</label>
+      <textarea id="c-text" placeholder="Paste or type the message exactly as it was sent."></textarea>
+      <details class="c-details" id="c-details"><summary>Message details <span class="muted">· sender, channel, date, voice</span></summary>
+        <div class="fields">
+          <div class="wide"><label for="c-sender">Sender (as shown on the message)</label><input id="c-sender" autocomplete="off" placeholder="e.g. Finance, Caterer, Dean's office"></div>
+          <div><label for="c-channel">Channel</label><select id="c-channel"><option>Email</option><option>WhatsApp</option><option>Notice</option></select></div>
+          <div><label for="c-date">Date</label><input id="c-date" type="date"></div>
+          <div><label for="c-lang">Voice language</label><select id="c-lang"><option value="en-US">English</option><option value="ur-PK">Urdu</option></select></div>
+          <div><button class="btn mic" id="c-mic" type="button">Speak</button></div>
+        </div>
+        <p class="note">Leave the sender blank only if you don't know it. The plan will then show that the sender was identified from the text, not verified.</p>
+      </details>
+      <div class="c-actions"><button class="btn primary" id="c-send">Submit message</button><span class="muted hide-sm">Ctrl + Enter</span></div>
+      <div class="c-status" id="c-status" role="status" aria-live="polite"></div>
+      <div class="c-secondary" id="c-secondary">
+        <span class="label">Other actions</span>
+        <button class="btn" id="c-packmode" type="button">Start a new plan from a pack</button>
+        <label class="btn" id="c-load">Load .txt file<input type="file" id="c-file" accept=".txt,text/plain" hidden></label>
+        <button class="btn" id="c-reset" type="button">Reset to saved example</button>
+      </div>
+    </div>
+    <div id="plan-body"></div>
+  </section>
+  <section id="v-other" hidden></section>
+</main>
+
+<script type="module">
+import { exportText, originalWording } from "/lib/text.js";
+
+const $ = (id) => document.getElementById(id);
 const rs = (n) => n == null ? "?" : "Rs " + Number(n).toLocaleString("en-US");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-document.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => { tab = b.dataset.tab; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b)); last = ""; tick(); });
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const params = new URLSearchParams(location.search);
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
 
-function planView(s) {
-  const p = s.plan, v = s.validation;
-  if (!p) return `<div class="empty">No plan yet.</div>`;
-  const rejected = s.messages.filter((m) => m.status === "rejected");
-  const ch = diffPlan(s.prevPlan, p);
-  const mark = (k) => ch.cards.has(k) ? ` changed ${flashNow ? "flash" : ""}` : "";
-  return `${changesCard(s, ch)}<div class="grid"><div>
-    <div class="card${mark("event")}"><h2>👥 Who’s coming</h2><div class="big">${p.event.students} students · ${p.event.teams} teams · ${p.event.hours} h</div>
-      <div class="mute">${p.event.headcount} people on site = ${p.event.students} students + ${p.event.staff} staff + ${p.judging.judgesNeeded} judges${p.event.extras.map((x) => ` + ${x.n} ${esc(x.who)}`).join("")}</div></div>
-    <div class="card${mark("venue")}"><h2>📍 Venue</h2>${p.venue ? `<div class="big">${esc(p.venue.name)} · ${rs(p.venue.price)}</div><div class="mute">${p.venue.capacity} seats for ${p.event.headcount} people · cheapest of ${p.venue.feasible.length} that fit${p.venue.requiredFeatures.length ? " · needs " + esc(p.venue.requiredFeatures.join(", ")) : ""} · source ${esc(p.venue.source)}</div>${p.venue.notes.map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}` : `<div class="bad">No venue fits</div>`}</div>
-    <div class="card${mark("schedule")}"><h2>🕘 Schedule</h2>${timelineBar(p)}<table>${(p.schedule?.blocks ?? []).map((b) => `<tr><td class="mute" style="width:120px">${b.start} – ${b.end}</td><td>${esc(b.name)}</td><td class="num">${b.minutes} min</td></tr>`).join("")}</table>${(p.schedule?.notes ?? []).map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}</div>
-    <div class="card${mark("food")}"><h2>🍱 Food</h2>${p.food ? `<div class="big">${p.food.quantity} × ${esc(p.food.option)} @ ${rs(p.food.pricePerHead)}</div><div class="mute">${rs(p.food.cost)} total${p.food.fixed.map((f) => ` · ${esc(f.item)} ${rs(f.amount)}`).join("")}</div>${(p.food.special ?? []).length ? `<div>Of which: ${p.food.special.map((x) => `${x.count} ${esc(x.name)}`).join(", ")} · ${p.food.quantity - p.food.special.reduce((t, x) => t + x.count, 0)} regular</div>` : ""}` : ""}</div>
-    <div class="card${mark("judging")}"><h2>⚖️ Judging</h2><div class="big">${p.judging.judgesNeeded} of ${p.judging.judgesAvailable} judges</div>
-      <div class="mute">${p.judging.teams} teams × ${p.judging.judgesPerTeam} judge ÷ max ${p.judging.maxTeamsPerJudge} teams each · ${p.judging.minutesPerTeam} min per team → ${p.judging.judgingMinutes} min · fees ${rs(p.judging.feeTotal)}</div>
-      ${p.judging.assignments ? `<details style="margin-top:8px"><summary class="mute" style="cursor:pointer">Show judge → team assignments (${p.judging.assignments.length} judges)</summary><table>${p.judging.assignments.map((a) => `<tr><td>Judge ${a.judge}</td><td class="mute">${a.teams.map((t) => `team ${t.team} (+${t.offset} min)`).join(", ")}</td></tr>`).join("")}</table></details>` : ""}</div>
-    <div class="card${mark("budget")}"><h2>💰 Budget</h2>${budgetBar(p)}<table>${p.budget.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="mute">${esc(l.source)}</td><td class="num">${rs(l.amount)}</td></tr>`).join("")}
-      <tr><th>Total</th><th></th><th class="num">${rs(p.budget.spent)} / ${rs(p.budget.total)}</th></tr></table>
-      <div class="mute" style="margin-top:6px">Remaining ${rs(p.budget.remaining)}</div>
-      ${p.budget.requests.map((r) => `<div class="warn" style="margin-top:4px">Not included: ${esc(r.item)} ${rs(r.amount)} (request, not approved${r.affordable ? "; would fit" : "; would not fit"})</div>`).join("")}</div>
-  </div><div>
-    <div class="card"><h2>✅ Checks</h2>${checkBadges(v)}${(v?.checks ?? []).map((c) => `<div class="check"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "PASS" : "FAIL"}</b><div><div>${esc(c.name)}</div><div class="mute">${esc(c.detail)}</div></div></div>`).join("")}</div>
-    <div class="card"><h2>🚫 Messages we couldn’t use (${rejected.length})</h2>${rejected.length ? rejected.map(msgView).join("") : `<div class="mute">None</div>`}</div>
-    ${p.assumptions.length ? `<div class="card"><h2>💡 Assumptions &amp; conflicts</h2>${p.assumptions.map((a) => `<div class="${a.startsWith("CONFLICT") ? "warn" : "mute"}">• ${esc(a)}</div>`).join("")}</div>` : ""}
-  </div></div>`;
+// ---------------- state & modes ----------------
+// mode: "local" (npm run ui, state on disk) | "cloud" (Vercel function, state in this browser) | "static" (saved file only)
+let mode = null, configured = true, state = null, origin = "mine", example = null;
+let tab = "plan", msgFilter = "all", highlight = null, pending = false, lastError = null, lastKey = "";
+const senderNotes = JSON.parse(store.get("mtm-sender-notes") || "{}"); // run time -> sender field as typed
+
+const isJson = (r) => r.ok && (r.headers.get("content-type") || "").includes("json");
+async function detectMode() {
+  try { const r = await fetch("/api/run", { cache: "no-store" }); if (isJson(r)) { configured = !!(await r.json()).configured; return "cloud"; } } catch {}
+  try { const r = await fetch("/api/state", { cache: "no-store" }); if (isJson(r)) return "local"; } catch {}
+  return "static";
 }
-function msgView(m) {
-  const cls = m.status === "partly used" ? "partly" : m.status;
-  return `<div class="msg ${m.status === "rejected" ? "rejected" : ""}"><b>#${m.id} ${esc(m.sender)}</b><span class="tag ${cls}">${esc(m.status)}</span>
-    <span class="mute"> · ${esc(m.role)} · ${esc(m.channel ?? "")} · ${esc(m.date ?? "no date")}</span><div>${esc(m.summary)}</div>
-    ${m.reasons.length ? `<div class="${m.status === "rejected" ? "bad" : "mute"}">${m.reasons.map(esc).join("<br>")}</div>` : ""}</div>`;
+async function loadExample() {
+  if (example !== null) return example;
+  try { const r = await fetch("demo-state.json", { cache: "no-store" }); example = r.ok ? await r.json() : false; } catch { example = false; }
+  return example;
+}
+async function load() {
+  if (mode === "local") { const r = await fetch("/api/state", { cache: "no-store" }); state = await r.json(); origin = "local"; return; }
+  if (mode === "static") { state = (await loadExample()) || null; origin = "example"; return; }
+  const mine = store.get("mtm-state");
+  if (params.has("example")) { state = (await loadExample()) || null; origin = "example"; return; }
+  if (mine) { state = JSON.parse(mine); origin = "mine"; return; }
+  if (params.has("new")) { state = null; origin = "mine"; return; }
+  state = (await loadExample()) || null; origin = "example";
+}
+function keepMine(s) { state = s; origin = "mine"; store.set("mtm-state", JSON.stringify(s)); if (params.has("example") || params.has("new")) history.replaceState(null, "", "/app"); }
+
+// ---------------- decisions (derived from the latest run) ----------------
+function diffPlan(a, b) {
+  const out = [];
+  if (!a || !b) return out;
+  const money = (label, x, y) => { if (x == null || y == null || x === y) return; out.push({ text: `${label} ${y > x ? "up" : "down"} from ${rs(x)} to ${rs(y)}`, short: `${label}: ${rs(x)} → ${rs(y)}`, delta: y - x }); };
+  const val = (label, x, y) => { if (String(x) === String(y)) return; out.push({ text: `${label} changed from ${x ?? "none"} to ${y ?? "none"}`, short: `${label}: ${x ?? "none"} → ${y ?? "none"}` }); };
+  const norm = (t) => t.replace(/: (\w)/, (m, c) => ": " + c.toUpperCase());
+  const li = (p) => Object.fromEntries((p.budget?.lines ?? []).map((l) => [norm(l.item), l.amount]));
+  const la = li(a), lb = li(b);
+  for (const k of new Set([...Object.keys(la), ...Object.keys(lb)])) {
+    if (la[k] === lb[k] || /^(Venue:|Food: \d|Judges:)/.test(k)) continue;
+    const label = k.replace(/^(Already ordered|Food|Extra): /, "");
+    if (la[k] == null) out.push({ text: `${label} added at ${rs(lb[k])}`, short: `${label}: added ${rs(lb[k])}`, delta: lb[k] });
+    else if (lb[k] == null) out.push({ text: `${label} removed (was ${rs(la[k])})`, short: `${label}: removed`, delta: -la[k] });
+    else money(label, la[k], lb[k]);
+  }
+  val("Venue", a.venue?.name, b.venue?.name); money("Venue cost", a.venue?.price, b.venue?.price);
+  val("People on site", a.event?.headcount, b.event?.headcount);
+  val("Meal", a.food?.option, b.food?.option); val("Meals ordered", a.food?.quantity, b.food?.quantity); money("Food cost", a.food?.cost, b.food?.cost);
+  val("Judges", a.judging?.judgesNeeded, b.judging?.judgesNeeded);
+  const bl = (p) => (p.schedule?.blocks ?? []).map((x) => `${x.name} (${x.minutes} min)`);
+  const sa = bl(a), sb = bl(b);
+  for (const x of sb.filter((y) => !sa.includes(y))) out.push({ text: `Schedule now includes ${x}`, short: `Schedule: + ${x}` });
+  money("Budget", a.budget?.total, b.budget?.total);
+  if (a.budget?.spent !== b.budget?.spent) out.push({ text: `Total spend ${b.budget.spent > a.budget.spent ? "up" : "down"} from ${rs(a.budget.spent)} to ${rs(b.budget.spent)} (${b.budget.spent > a.budget.spent ? "+" : "−"}${Math.abs(b.budget.spent - a.budget.spent).toLocaleString("en-US")})`, short: "", total: true });
+  return out;
+}
+function parseNote(text) { const m = /^#(\S+)\s+([^:]+):\s*(.*)$/.exec(text); return m ? { id: m[1], sender: m[2].trim(), rest: m[3] } : { id: null, sender: "", rest: text }; }
+function friendlyReason(rest) {
+  const q = /food\.quantity\s*=\s*(\d+)/.exec(rest), short = /leave (\d+) of (\d+) people without food/.exec(rest);
+  if (short) return `${q ? q[1] + " meals" : "This"} would leave ${short[1]} of ${short[2]} people without lunch.${/no authority/.test(rest) ? " Only the organiser can change the meal order." : ""}`;
+  let r = rest.replace(/^[a-z_]+\.[a-z_]+(\s*\([^)]*\))?\s*(=\s*[^:]+)?\s*not used:\s*/i, "");
+  r = r.replace(/\b(\w[\w' ]*) \((\w+)\) has no authority to set [a-z_.]+; only ([a-z, ]+) can/i, (m, who, role, roles) => `${who} is not allowed to change this; only the ${roles.replace(/organizer/g, "organiser")} can`);
+  r = r.replace(/organizer/g, "organiser");
+  return r.charAt(0).toUpperCase() + r.slice(1).replace(/\s*$/, "") + (/[.!?]$/.test(r) ? "" : ".");
+}
+function retained(rest, p) {
+  if (!p) return "";
+  if (/food\./.test(rest)) return `The accepted order remains ${p.food.quantity} meals for ${p.event.headcount} people.`;
+  if (/budget\.total/.test(rest)) return `The budget stays ${rs(p.budget.total)}; spend is ${rs(p.budget.spent)}.`;
+  if (/budget\./.test(rest)) return `Spend stays ${rs(p.budget.spent)} of ${rs(p.budget.total)}.`;
+  if (/venue\./.test(rest)) return `The venue stays ${p.venue?.name} (${p.venue?.capacity} seats for ${p.event.headcount} people).`;
+  if (/judging\./.test(rest)) return `Judging stays at ${p.judging.judgesNeeded} judges.`;
+  if (/event\./.test(rest)) return `The event stays at ${p.event.headcount} people on site.`;
+  return `Spend stays ${rs(p.budget.spent)} of ${rs(p.budget.total)}.`;
+}
+function decision(s) {
+  const r = s?.runs?.at(-1);
+  if (!r) return null;
+  const notes = r.notes ?? [];
+  const rej = notes.filter((n) => n.kind === "rejected").map((n) => ({ ...parseNote(n.text), raw: n.text }));
+  const err = notes.find((n) => n.kind === "error");
+  const changes = diffPlan(s.prevPlan, s.plan);
+  const meta = `${r.kind}${r.source ? " · " + r.source : ""} · ${plural(r.calls.length, "model call")} · ${r.totalTokens.toLocaleString("en-US")} tokens · ${((r.runMs ?? 0) / 1000).toFixed(1)} s`;
+  const fresh = !/update/i.test(r.kind ?? "") || !s.prevPlan;
+  if (err && /Run stopped/.test(err.text)) return { kind: "rejected", head: "Run stopped, plan unchanged", body: [err.text.replace(/^Run stopped:\s*/, "")], meta, ids: [], at: r.at };
+  if (fresh) {
+    const counts = {}; for (const m of s.messages ?? []) counts[m.status] = (counts[m.status] ?? 0) + 1;
+    const parts = Object.entries(counts).map(([k, n]) => `${n} ${k}`).join(", ");
+    return { kind: s.validation?.ok ? "accepted" : "mixed", head: `Plan made from ${plural(s.messages?.length ?? 0, "message")}`, body: [`${parts}.${rej.length ? " Rejected messages are listed with their reasons." : ""}`], meta, ids: [...new Set(rej.map((x) => x.id))], at: r.at };
+  }
+  const useful = changes.filter((c) => !c.total);
+  const total = changes.find((c) => c.total);
+  if (rej.length && !useful.length) {
+    const x = rej[0];
+    return { kind: "rejected", head: "Message rejected", body: [`${friendlyReason(x.rest)} ${retained(x.rest, s.plan)}`], meta, ids: [...new Set(rej.map((y) => y.id))], sender: x.sender, at: r.at };
+  }
+  if (rej.length) return { kind: "mixed", head: "Partly accepted", body: [`Accepted: ${useful.map((c) => c.text).join("; ")}.`, `Rejected: ${friendlyReason(rej[0].rest)}`], meta, ids: [...new Set(rej.map((y) => y.id))], at: r.at };
+  if (useful.length) {
+    const first = useful[0].text.replace(/ up from | down from /, " updated from ");
+    const rest = useful.slice(1).map((c) => c.text);
+    return { kind: "accepted", head: "Plan updated", body: [`${first}.${total ? " " + total.text + "." : ""}`], list: rest, meta, ids: [], at: r.at };
+  }
+  const ign = notes.find((n) => ["ignored", "outdated", "superseded"].includes(n.kind));
+  return { kind: "pending", head: "No change to the plan", body: [ign ? friendlyReason(parseNote(ign.text).rest) : "The message did not change any figure in the plan."], meta, ids: [], at: r.at };
+}
+
+// ---------------- views ----------------
+function ctxLabel() {
+  if (origin === "example") return "Saved example";
+  if (origin === "local") return "Local run";
+  return state ? "Your plan" : "New plan";
+}
+function leadView(s) {
+  const p = s.plan, v = s.validation, n = (v?.checks ?? []).filter((c) => c.ok).length, all = (v?.checks ?? []).length;
+  const d = pending ? { kind: "pending", head: "Updating…", body: ["Reading the new message. The last accepted plan below is unchanged until this finishes."], meta: "" } : decision(s);
+  const sn = d && d.at ? senderNotes[d.at] : undefined;
+  return `<div class="lead">
+      <div><p class="eyebrow"><span class="status ${v?.ok ? "ok" : "bad"}">${v?.ok ? "Valid plan" : "Plan needs attention"} · ${n} of ${all} checks pass</span></p>
+        <h1>${p.event.students} students, ${p.event.teams} teams, ${p.event.hours} hours</h1>
+        <p class="sub">${p.event.headcount} people on site · ${esc(p.venue?.name ?? "no venue")} · ${rs(p.budget.spent)} of ${rs(p.budget.total)}</p></div>
+      <div class="lead-actions">${mode === "static" ? `<span class="muted">Read-only copy</span>` : `<button class="btn primary" id="open-composer" aria-controls="composer" aria-expanded="${!$("composer").hidden}">Add message</button>`}</div>
+    </div>
+    ${d ? `<div class="decision ${d.kind}" id="decision"><div class="d-label">Latest decision</div><div class="d-head">${esc(d.head)}</div>${d.body.map((t) => `<p>${esc(t)}</p>`).join("")}${d.list?.length ? `<ul>${d.list.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+      ${sn === "" && d.sender ? `<p class="muted">The sender field was left blank. “${esc(d.sender)}” was identified from the message text and is not verified.</p>` : ""}
+      ${d.meta ? `<div class="d-links">${d.ids?.length ? d.ids.map((id) => `<button class="linkbtn" data-goto-msg="${esc(id)}">Original message #${esc(id)}</button>`).join("") : `<button class="linkbtn" data-goto="messages">All messages</button>`}<button class="linkbtn" data-goto="trace">Full trace</button></div><div class="d-meta">${esc(d.meta)}</div>` : ""}</div>` : ""}
+    ${statsView(p)}`;
+}
+function statsView(p) {
+  const fits = p.venue && p.venue.capacity >= p.event.headcount, fed = p.food && p.food.quantity >= p.event.headcount, within = p.budget.spent <= p.budget.total;
+  const pct = Math.min(100, Math.round(p.budget.spent / (p.budget.total || 1) * 100));
+  return `<div class="stats" role="list">
+    <div class="stat" role="listitem"><div class="k">Attendance vs venue</div><b>${p.event.headcount} / ${p.venue?.capacity ?? "?"}</b><div class="v ${fits ? "ok" : "bad"}">${fits ? `${p.venue.capacity - p.event.headcount} seats spare` : "Does not fit"}</div></div>
+    <div class="stat" role="listitem"><div class="k">Meals vs people</div><b>${p.food?.quantity ?? 0} / ${p.event.headcount}</b><div class="v ${fed ? "ok" : "bad"}">${fed ? "Everyone fed" : `${p.event.headcount - (p.food?.quantity ?? 0)} short`}</div></div>
+    <div class="stat" role="listitem"><div class="k">Judges needed / available</div><b>${p.judging.judgesNeeded} / ${p.judging.judgesAvailable}</b><div class="v">${p.judging.judgingMinutes} min of judging</div></div>
+    <div class="stat" role="listitem"><div class="k">Schedule</div><b>${(p.schedule?.blocks ?? []).reduce((t, b) => t + b.minutes, 0)} / ${p.schedule?.totalMinutes ?? "?"} min</b><div class="v">${p.schedule?.buildMinutes ?? 0} min of build time</div></div>
+    <div class="stat" role="listitem"><div class="k">Spend vs budget</div><b class="money">${rs(p.budget.spent)}</b><div class="v ${within ? "" : "bad"}">of ${rs(p.budget.total)} · ${within ? rs(p.budget.remaining) + " left" : "over budget"}</div><div class="meter" aria-hidden="true"><i style="width:${pct}%"></i></div></div>
+  </div>`;
+}
+function planBody(s) {
+  const p = s.plan, v = s.validation;
+  const rejected = s.messages.filter((m) => m.status === "rejected");
+  const blocks = p.schedule?.blocks ?? [], tot = blocks.reduce((t, b) => t + b.minutes, 0) || 1;
+  const cls = (b) => b.isJudging ? "judge" : b.build ? "build" : b.fixed ? "fixed" : /lunch|break|prayer/i.test(b.name) ? "meal" : "";
+  const j = p.judging;
+  return `<div class="cols"><div>
+    <section class="part"><h2>Schedule</h2>
+      <div class="timeline" role="img" aria-label="Schedule timeline">${blocks.map((b) => `<i class="${cls(b)}" style="width:${b.minutes / tot * 100}%" title="${esc(`${b.start}–${b.end} ${b.name}`)}"></i>`).join("")}</div>
+      <div class="legend"><span style="--c:var(--ink)">Build</span><span style="--c:var(--acc)">Judging</span><span style="--c:var(--muted)">Meals and breaks</span><span style="--c:var(--warn)">Fixed by a message</span><span style="--c:var(--line)">Opening and closing</span></div>
+      <table><thead><tr><th style="width:130px">Time</th><th>Block</th><th class="num">Minutes</th></tr></thead><tbody>${blocks.map((b) => `<tr><td class="num" style="text-align:left">${esc(b.start)} – ${esc(b.end)}</td><td>${esc(b.name)}${b.fixed ? `<span class="tag fixed">fixed time</span>` : ""}</td><td class="num">${b.minutes}</td></tr>`).join("")}</tbody></table>
+      ${(p.schedule?.notes ?? []).map((n) => `<p class="note">${esc(n)}</p>`).join("")}
+      ${blocks[0]?.start?.startsWith("+") ? `<p class="note">No message gives a start time, so times are shown from the start of the event (+0:00).</p>` : ""}
+    </section>
+    <section class="part"><h2>Venue</h2>${p.venue ? `<div class="big">${esc(p.venue.name)} · ${rs(p.venue.price)}</div>
+      <div class="pair"><div><b>${p.venue.capacity}</b><span class="muted">seats</span></div><div><b>${p.event.headcount}</b><span class="muted">people on site</span></div><div><b>${p.venue.feasible.length} of ${p.venue.options}</b><span class="muted">options fit every rule</span></div></div>
+      <p class="note">Cheapest option that fits everyone${p.venue.requiredFeatures.length ? ` and has ${esc(p.venue.requiredFeatures.join(", "))}` : ""}. Source: ${esc(p.venue.source)}.</p>${p.venue.notes.map((n) => `<p class="note">${esc(n)}</p>`).join("")}` : `<p class="bad">No venue fits.</p>`}</section>
+    <section class="part"><h2>Food</h2>${p.food ? `<div class="big">${p.food.quantity} × ${esc(p.food.option)} at ${rs(p.food.pricePerHead)}</div>
+      <div class="pair"><div><b>${p.food.quantity}</b><span class="muted">meals ordered</span></div><div><b>${p.event.headcount}</b><span class="muted">people to feed</span></div><div><b class="money">${rs(p.food.cost)}</b><span class="muted">food total</span></div></div>
+      ${p.food.fixed.length ? `<p class="note">Includes ${p.food.fixed.map((f) => `${esc(f.item)} ${rs(f.amount)}`).join(", ")}.</p>` : ""}
+      ${(p.food.special ?? []).length ? `<p class="note">Of which ${p.food.special.map((x) => `${x.count} ${esc(x.name)}`).join(", ")}; ${p.food.quantity - p.food.special.reduce((t, x) => t + x.count, 0)} regular.</p>` : ""}` : ""}</section>
+    <section class="part"><h2>Judging</h2><div class="big">${j.judgesNeeded} judges of ${j.judgesAvailable} available</div>
+      <p class="note">${j.teams} teams × ${j.judgesPerTeam} judge, at most ${j.maxTeamsPerJudge} teams per judge, ${j.minutesPerTeam} min per team → ${j.judgingMinutes} min of judging. Fees ${j.judgesNeeded} × ${rs(j.feePerJudge)} = ${rs(j.feeTotal)}.</p>
+      ${j.assignments ? `<details class="io"><summary>Judge timetable (${j.assignments.length} judges, no double-booking)</summary><table><thead><tr><th>Judge</th><th>Teams (minutes after judging starts)</th></tr></thead><tbody>${j.assignments.map((a) => `<tr><td>Judge ${a.judge}</td><td>${a.teams.map((t) => `team ${t.team} (+${t.offset})`).join(", ")}</td></tr>`).join("")}</tbody></table></details>` : ""}</section>
+    <section class="part"><h2>Budget</h2>
+      <table><thead><tr><th>Item</th><th class="hide-sm">Source</th><th class="num">Amount</th></tr></thead><tbody>${p.budget.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="muted hide-sm">${esc(l.source)}</td><td class="num">${rs(l.amount)}</td></tr>`).join("")}
+      <tr class="total"><td>Total spend</td><td class="hide-sm"></td><td class="num">${rs(p.budget.spent)}</td></tr></tbody></table>
+      <div class="pair"><div><b class="money">${rs(p.budget.total)}</b><span class="muted">budget</span></div><div><b class="money">${rs(p.budget.remaining)}</b><span class="muted">remaining</span></div></div>
+      ${p.budget.requests.map((r) => `<p class="note">Not included: ${esc(r.item)} ${rs(r.amount)} (a request, not approved${r.affordable ? "; it would fit" : "; it would not fit"}).</p>`).join("")}</section>
+  </div><aside>
+    <div class="block"><h2>Checks</h2>${(v?.checks ?? []).map((c) => `<div class="check"><span class="r ${c.ok ? "ok" : "bad"}">${c.ok ? "PASS" : "FAIL"}</span><div>${esc(c.name)}<div class="muted" style="font-size:13px">${esc(c.detail)}</div></div></div>`).join("")}</div>
+    <div class="block"><h2>Rejected messages (${rejected.length})</h2>${rejected.length ? rejected.map((m) => `<div class="rej"><button class="linkbtn" data-goto-msg="${esc(m.id)}">#${esc(m.id)} ${esc(m.sender)}</button><div class="muted" style="font-size:13px">${esc(friendlyReason(m.reasons[0] ?? ""))}</div></div>`).join("") : `<p class="muted">None.</p>`}</div>
+    ${p.assumptions.length ? `<div class="block"><h2>Assumptions and conflicts</h2>${p.assumptions.map((a) => `<p class="note" style="${a.startsWith("CONFLICT") ? "color:var(--warn)" : ""}">${esc(a)}</p>`).join("")}</div>` : ""}
+  </aside></div>`;
+}
+function emptyView() {
+  return `<div class="empty"><p class="eyebrow">${esc(ctxLabel())}</p><h1>Start with your message pack</h1><p class="muted">Paste the organiser's messages (emails, WhatsApp texts, notices) or load the .txt file. The planner reads them and builds the venue, schedule, food, judging and budget.</p>${mode === "cloud" ? `<p><a href="/app?example">Or view the saved example</a></p>` : ""}</div>`;
+}
+function messagesView(s) {
+  const list = s.messages ?? [];
+  const counts = {}; for (const m of list) counts[m.status] = (counts[m.status] ?? 0) + 1;
+  const order = ["all", "rejected", "used", "partly used", "outdated", "superseded", "ignored"].filter((k) => k === "all" || counts[k]);
+  for (const k of Object.keys(counts)) if (!order.includes(k)) order.push(k);
+  const shown = list.filter((m) => msgFilter === "all" || m.status === msgFilter).slice().sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+  return `<div class="filters" role="group" aria-label="Filter messages">${order.map((k) => `<button data-filter="${esc(k)}" aria-pressed="${msgFilter === k}">${k === "all" ? "All" : esc(k[0].toUpperCase() + k.slice(1))} (${k === "all" ? list.length : counts[k]})</button>`).join("")}</div>
+    ${shown.map((m) => { const orig = originalWording(s, m.id); return `<article class="msg ${String(highlight) === String(m.id) ? "hl" : ""}" id="msg-${esc(m.id)}">
+      <div class="m-head"><b>#${esc(m.id)} ${esc(m.sender)}</b><span class="tag ${esc(m.status.split(" ")[0])}">${esc(m.status)}</span><span class="muted" style="font-size:13px">${esc(m.channel && m.channel !== "other" ? m.channel : "channel not stated")} · ${esc(m.date ?? "no date")} · read as ${esc(m.role)}</span></div>
+      <div class="k">Original wording</div>${orig ? `<div class="quote">${esc(orig)}</div>` : `<p class="muted" style="margin:4px 0 0;font-size:14px">Not found as a separate line in the input. The full input is in the Trace.</p>`}
+      <div class="k">Read as</div><div style="font-size:14px">${esc(m.summary)}</div>
+      ${m.reasons.length ? `<div class="k">${m.status === "rejected" ? "Why it was rejected" : "Note"}</div>${m.reasons.map((r) => `<div class="reason ${m.status === "rejected" ? "bad" : ""}">${esc(friendlyReason(r))}</div>`).join("")}` : ""}</article>`; }).join("") || `<p class="muted">No messages in this filter.</p>`}`;
+}
+function traceView(s) {
+  const runs = s.runs ?? [];
+  const all = runs.reduce((t, r) => t + r.totalTokens, 0), calls = runs.reduce((t, r) => t + r.calls.length, 0);
+  const used = {}; for (const r of runs) for (const c of r.calls) used[c.model] = (used[c.model] ?? 0) + 1;
+  return `<div class="summaryline"><span>Total tokens, all runs <b>${all.toLocaleString("en-US")}</b></span><span>Model calls <b>${calls}</b></span><span>Runs <b>${runs.length}</b></span><span>Models: ${Object.entries(used).map(([m, n]) => `${esc(m)} (${n})`).join(", ") || "none"}</span></div>
+    ${runs.map((r, i) => ({ r, i })).reverse().map(({ r, i }) => `<div class="run" id="run-${i}"><h3>Run ${i + 1}: ${esc(r.kind)} <span class="muted" style="font-weight:400">· ${esc(r.source ?? "")} · ${new Date(r.at).toLocaleString()} · ${plural(r.calls.length, "call")} · ${r.totalTokens.toLocaleString("en-US")} tokens · ${((r.runMs ?? 0) / 1000).toFixed(1)} s</span></h3>
+      ${r.calls.length ? `<table class="calls"><thead><tr><th>Call</th><th>Area</th><th>Model</th><th class="num">In</th><th class="num">Out</th><th class="num hide-sm">Thinking</th><th class="num">Total</th><th class="num hide-sm">Time</th></tr></thead><tbody>${r.calls.map((c) => `<tr><td>${c.n}</td><td>${esc(c.area)}</td><td>${esc(c.model)}</td><td class="num">${c.tokens.input}</td><td class="num">${c.tokens.output}</td><td class="num hide-sm">${c.tokens.thinking ?? 0}</td><td class="num">${c.tokens.total}</td><td class="num hide-sm">${(c.ms / 1000).toFixed(1)} s</td></tr>`).join("")}</tbody></table>
+      ${r.calls.map((c) => `<details class="io"><summary>Call ${c.n} input and output</summary><pre>SYSTEM PROMPT\n${esc(c.system ?? "")}</pre><pre>INPUT\n${esc(c.input)}</pre><pre>OUTPUT\n${esc(c.output)}</pre></details>`).join("")}` : `<p class="muted">No model calls in this run.</p>`}
+      <ul class="notes">${r.notes.map((n) => `<li class="${esc(n.kind)}">[${esc(n.kind)}] ${esc(n.text)}</li>`).join("")}</ul></div>`).join("") || `<p class="muted">No runs yet.</p>`}`;
 }
 function outboxView(s) {
   const d = s.outbox ?? [];
-  if (!d.length) return `<div class="empty">No reply drafts yet.</div>`;
-  return `<div class="card mute">One reply per sender, on the channel they used. Written by code from the plan (no model calls). Drafts only: nothing is sent.</div>` +
-    d.map((x, i) => `<div class="card"><h2><span class="tag ${x.channel === "WhatsApp" ? "used" : "partly"}" style="margin:0 8px 0 0">${esc(x.channel)}</span>To ${esc(x.to)} <span class="mute">· re: ${x.replyTo.map((i) => "#" + i).join(", ")}</span></h2>${x.subject ? `<div><b>Subject:</b> ${esc(x.subject)}</div>` : ""}<pre style="border:0;padding:6px 0 0;color:var(--text);font:14px/1.5 system-ui, sans-serif">${esc(x.body)}</pre>
-      <div class="actions"><button class="iconbtn" data-copy="${i}">⧉ Copy</button>${x.channel === "WhatsApp"
-        ? `<a class="iconbtn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(x.body)}">Open in WhatsApp</a>`
-        : `<a class="iconbtn" href="mailto:?subject=${encodeURIComponent(x.subject ?? "")}&body=${encodeURIComponent(x.body)}">Open in email app</a>`}<span class="mute" style="align-self:center">You choose the recipient and press send yourself.</span></div></div>`).join("");
+  if (!d.length) return `<p class="muted">No reply drafts yet.</p>`;
+  return `<p class="muted">One draft reply per sender, on the channel they used. Written by code from the plan, with no model calls. Nothing is sent: you choose the recipient and press send.</p>` + d.map((x, i) => `<article class="draft"><div class="m-head"><b>To ${esc(x.to)}</b> <span class="tag">${esc(x.channel)}</span> <span class="muted" style="font-size:13px">re: ${x.replyTo.map((n) => "#" + n).join(", ")}</span></div>${x.subject ? `<div style="margin-top:6px"><span class="muted">Subject:</span> ${esc(x.subject)}</div>` : ""}<div class="body">${esc(x.body)}</div>
+    <div class="acts"><button class="btn" data-copy="${i}">Copy</button>${x.channel === "WhatsApp" ? `<a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(x.body)}">Open in WhatsApp</a>` : `<a class="btn" href="mailto:?subject=${encodeURIComponent(x.subject ?? "")}&body=${encodeURIComponent(x.body)}">Open in email</a>`}</div></article>`).join("");
 }
-function traceView(s) {
-  const all = s.runs.reduce((t, r) => t + r.totalTokens, 0);
-  const used = {}; for (const r of s.runs) for (const c of r.calls) used[c.model] = (used[c.model] ?? 0) + 1;
-  return `<div class="card"><b>Total tokens, all runs: ${all.toLocaleString()}</b> <span class="mute">· models used: ${Object.entries(used).map(([m, n]) => `${esc(m)} (${n})`).join(", ") || "none"}</span> <span class="mute">· ${s.runs.length} runs · ${s.runs.reduce((t, r) => t + r.calls.length, 0)} model calls</span></div>` +
-    [...s.runs].reverse().map((r) => `<div class="card run"><h3>${esc(r.kind)} <span class="mute">· ${esc(r.source)} · ${new Date(r.at).toLocaleTimeString()} · ${r.calls.length} calls · ${r.totalTokens} tokens · ${((r.runMs ?? 0) / 1000).toFixed(1)} s</span></h3>
-      ${r.calls.map((c) => `<details class="call"><summary><b>Call ${c.n}</b><span class="area">${esc(c.area)}</span><span class="mute">${esc(c.model)}</span><span class="grow"></span><span class="mute">in ${c.tokens.input} · out ${c.tokens.output}${c.tokens.thinking ? " · think " + c.tokens.thinking : ""} · total ${c.tokens.total} · ${(c.ms / 1000).toFixed(1)} s</span></summary><pre>SYSTEM PROMPT\n${esc(c.system ?? "")}</pre><pre>INPUT\n${esc(c.input)}</pre><pre>OUTPUT\n${esc(c.output)}</pre></details>`).join("") || `<div class="mute">No model calls</div>`}
-      ${r.notes.map((n) => `<div class="note ${n.kind === "rejected" ? "bad" : n.kind === "error" ? "bad" : n.kind === "info" ? "mute" : "warn"}">[${esc(n.kind)}] ${esc(n.text)}</div>`).join("")}</div>`).join("");
+
+// ---------------- render ----------------
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  render(true);
 }
-// ---------- what changed since the previous plan ----------
-function diffPlan(a, b) {
-  const out = [], cards = new Set();
-  if (!a || !b) return { out, cards };
-  const money = (card, label, x, y, goodWhenUp = false) => { if (x === y || x == null || y == null) return; cards.add(card);
-    const up = y > x; out.push({ dir: up === goodWhenUp ? "down" : "up", arrow: up ? "▲" : "▼", text: `${label}: ${rs(x)} → ${rs(y)} (${up ? "+" : "−"}${rs(Math.abs(y - x)).slice(3)})` }); };
-  const val = (card, label, x, y) => { if (String(x) === String(y)) return; cards.add(card); out.push({ dir: "same", text: `${label}: ${x ?? "—"} → ${y ?? "—"}` }); };
-  val("event", "People on site", a.event?.headcount, b.event?.headcount);
-  val("venue", "Venue", a.venue?.name, b.venue?.name); money("venue", "Venue cost", a.venue?.price, b.venue?.price);
-  val("food", "Meal", a.food?.option, b.food?.option); val("food", "Meals", a.food?.quantity, b.food?.quantity); money("food", "Food cost", a.food?.cost, b.food?.cost);
-  val("judging", "Judges", a.judging?.judgesNeeded, b.judging?.judgesNeeded); money("judging", "Judge fees", a.judging?.feeTotal, b.judging?.feeTotal);
-  const bl = (p) => (p.schedule?.blocks ?? []).map((x) => `${x.start}–${x.end} ${x.name}`);
-  const sa = bl(a), sb = bl(b);
-  for (const x of sb.filter((y) => !sa.includes(y))) { cards.add("schedule"); out.push({ dir: "same", text: `Schedule now has: ${x}` }); }
-  for (const x of sa.filter((y) => !sb.includes(y))) { cards.add("schedule"); out.push({ dir: "same", text: `Schedule no longer has: ${x}` }); }
-  const li = (p) => Object.fromEntries((p.budget?.lines ?? []).map((l) => [l.item.replace(/: (\w)/, (m, c) => ": " + c.toUpperCase()), l.amount]));
-  const la = li(a), lb = li(b);
-  for (const k of new Set([...Object.keys(la), ...Object.keys(lb)])) if (la[k] !== lb[k] && !/^(Venue|Food: \d|Judges)/.test(k)) money("budget", k, la[k] ?? 0, lb[k] ?? 0);
-  money("budget", "Total spend", a.budget?.spent, b.budget?.spent);
-  money("budget", "Budget", a.budget?.total, b.budget?.total, true);
-  money("budget", "Remaining", a.budget?.remaining, b.budget?.remaining, true);
-  return { out, cards };
-}
-function changesCard(s, ch) {
-  const r = s.runs.at(-1);
-  if (!s.prevPlan || !r) return "";
-  const why = r.notes.filter((n) => n.kind !== "info").map((n) => `<div class="${n.kind === "rejected" ? "bad" : "warn"}">• ${esc(n.text)}</div>`).join("");
-  return `<div class="card${ch.out.length ? " changed" : ""}"><h2>Here’s what changed <span class="mute">· ${esc(r.source)} · ${r.calls.length} model call${r.calls.length === 1 ? "" : "s"} · ${r.totalTokens} tokens · ${((r.runMs ?? 0) / 1000).toFixed(1)} s</span></h2>
-    ${ch.out.length ? ch.out.map((c) => `<div class="chg ${c.dir}">${c.arrow ?? "•"} ${esc(c.text)}</div>`).join("") : `<div class="mute">Nothing in the plan needed to change.</div>`}${why}</div>`;
-}
-// ---------- visuals ----------
-const PAL = ["#0071e3", "#34c759", "#ff9500", "#af52de", "#ff2d55", "#5ac8fa", "#ffcc00", "#5856d6", "#a2845e"];
-function budgetBar(p) {
-  const total = p.budget.total || p.budget.spent || 1;
-  const segs = p.budget.lines.map((l, i) => ({ w: l.amount / total * 100, c: PAL[i % PAL.length], t: `${l.item}: ${rs(l.amount)}` }));
-  if (p.budget.remaining > 0) segs.push({ w: p.budget.remaining / total * 100, c: "var(--line)", t: `Remaining: ${rs(p.budget.remaining)}` });
-  const pct = Math.round(p.budget.spent / total * 100);
-  return `<div class="mute">${pct}% of budget used</div><div class="bar" role="img" aria-label="Budget breakdown">${segs.map((x) => `<div style="width:${x.w}%;background:${x.c}" title="${esc(x.t)}"></div>`).join("")}</div>
-    <div class="legend">${segs.map((x) => `<span><i style="background:${x.c}"></i>${esc(x.t)}</span>`).join("")}</div>`;
-}
-function timelineBar(p) {
-  const bl = p.schedule?.blocks ?? []; const tot = bl.reduce((t, b) => t + b.minutes, 0) || 1;
-  const col = (b) => b.isJudging ? "#af52de" : b.build ? "#34c759" : b.fixed ? "#ff9500" : /lunch|break/i.test(b.name) ? "#5ac8fa" : "#0071e3";
-  return `<div class="bar" role="img" aria-label="Schedule timeline">${bl.map((b) => `<div style="width:${b.minutes / tot * 100}%;background:${col(b)}" title="${esc(`${b.start}–${b.end} ${b.name} (${b.minutes} min)`)}">${b.minutes / tot > .09 ? esc(b.name.replace(/\s*\(.*\)/, "")) : ""}</div>`).join("")}</div>
-    <div class="legend"><span><i style="background:#0071e3"></i>Opening/closing</span><span><i style="background:#34c759"></i>Build</span><span><i style="background:#5ac8fa"></i>Lunch/break</span><span><i style="background:#ff9500"></i>Fixed by a message</span><span><i style="background:#af52de"></i>Judging</span></div><div style="height:8px"></div>`;
-}
-function checkBadges(v) {
-  const c = v?.checks ?? []; const n = c.filter((x) => x.ok).length;
-  return `<div style="margin-bottom:6px"><span class="badge ${n === c.length ? "ok" : "bad"}">${n}/${c.length} checks pass</span></div>`;
-}
-// ---------- state loading (local server, or the saved snapshot on the public demo) ----------
-let demo = false, flashNow = false, lastRuns = null;
-let mode = null, cloudState = undefined, configured = true; // mode: "local" (npm run ui) | "cloud" (Vercel) | "demo" (static)
-const isJson = (r) => r.ok && (r.headers.get("content-type") || "").includes("json");
-async function detectMode() {
-  try { const r = await fetch("/api/state", { cache: "no-store" }); if (isJson(r)) return "local"; } catch {}
-  try { const r = await fetch("/api/run", { cache: "no-store" }); if (isJson(r)) { configured = !!(await r.json()).configured; return "cloud"; } } catch {}
-  return "demo";
-}
-function keep(st) { cloudState = st; try { localStorage.setItem("mtm-state", JSON.stringify(st)); } catch {} }
-async function loadStateJson() {
-  if (!mode) { mode = await detectMode(); setupMode(); }
-  if (mode === "local") { const r = await fetch("/api/state", { cache: "no-store" }); return r.json(); }
-  if (cloudState === undefined) {
-    try { const t = localStorage.getItem("mtm-state"); if (t) cloudState = JSON.parse(t); } catch {}
-    if (cloudState === undefined) { try { const r = await fetch("demo-state.json", { cache: "no-store" }); cloudState = r.ok ? await r.json() : null; } catch { cloudState = null; } }
+function render(force = false) {
+  const key = JSON.stringify([state?.runs?.length, state?.runs?.at(-1)?.at, tab, msgFilter, highlight, pending, origin, lastError]);
+  if (!force && key === lastKey) return; lastKey = key;
+  $("ctx").hidden = false; $("ctx").textContent = ctxLabel();
+  const rej = (state?.messages ?? []).filter((m) => m.status === "rejected").length;
+  $("rejcount").textContent = rej ? `${rej} rejected` : "";
+  $("download").disabled = !state; $("print").disabled = !state?.plan;
+  // notices
+  const n = [];
+  if (origin === "example" && state) {
+    const src = String(state.runs?.[0]?.source ?? "a message pack").split(/[\\/]/).pop();
+    n.push(`<div class="notice example"><b>Saved example.</b> A real run saved from ${esc(src)}${mode === "cloud" ? `. Add a message to try it, or <a href="/app?new">start your own plan</a>` : ""}.${mode === "cloud" && !configured ? " Live updates are switched off on this deployment." : ""}</div>`);
   }
-  return cloudState;
+  if (lastError) n.push(`<div class="notice error"><b>The last request failed.</b> ${esc(lastError)} The plan shown is the last accepted plan.</div>`);
+  $("notice").innerHTML = n.join("");
+  $("v-plan").hidden = tab !== "plan"; $("v-other").hidden = tab === "plan";
+  // composer mode
+  const hasPlan = !!state?.plan;
+  $("c-packmode").hidden = !hasPlan; $("c-reset").hidden = mode !== "cloud" || origin === "example";
+  if (tab === "plan") {
+    if (!hasPlan) { $("lead").innerHTML = emptyView(); $("plan-body").innerHTML = ""; if (mode !== "static") openComposer("pack", false); }
+    else { $("lead").innerHTML = leadView(state); $("plan-body").innerHTML = planBody(state); }
+  } else {
+    $("v-other").innerHTML = !state ? `<p class="muted">No plan yet.</p>` : tab === "messages" ? messagesView(state) : tab === "trace" ? traceView(state) : outboxView(state);
+    if (tab === "messages" && highlight != null) { const el = document.getElementById("msg-" + highlight); if (el) el.scrollIntoView({ block: "center" }); }
+  }
 }
-function setupMode() {
-  demo = mode === "demo";
-  document.querySelectorAll(".cloud-only").forEach((e) => (e.hidden = mode !== "cloud"));
-  if (mode !== "local") { const h = document.querySelector("h1"); h.style.cursor = "pointer"; h.title = "Back to home"; h.onclick = () => (location.href = "/"); }
-  if (mode === "cloud" && !configured) { const d = $("demo"); d.hidden = false; d.textContent = "You are viewing a saved plan from a real run. Live updates turn on once a model key is added to this deployment."; }
+
+// ---------------- composer ----------------
+let composeMode = "message";
+function openComposer(kind = "message", focus = true) {
+  composeMode = kind;
+  const c = $("composer"); c.hidden = false;
+  const pack = kind === "pack";
+  $("c-title").textContent = pack ? "Start a new plan" : "Add a message";
+  $("c-sub").textContent = pack ? "Paste the whole message pack. The plan is made from scratch." : "It updates the plan with the same engine as the command line: at most 5 model calls.";
+  $("c-text").placeholder = pack ? "Paste every message, one per line or block, exactly as given." : "Paste or type the message exactly as it was sent.";
+  $("c-details").hidden = pack; $("c-send").textContent = pack ? "Plan from this pack" : "Submit message";
+  $("c-close").hidden = !state?.plan;
+  $("c-packmode").textContent = pack ? "Add a single message instead" : "Start a new plan from a pack";
+  const b = $("open-composer"); if (b) b.setAttribute("aria-expanded", "true");
+  if (focus) { $("c-text").focus({ preventScroll: true }); c.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
 }
-async function tick() {
-  try {
-    const s = await loadStateJson();
-    if (demo) { document.getElementById("demo").hidden = false; document.getElementById("composer").hidden = true; }
-    const key = JSON.stringify(s?.runs?.length) + tab + (s?.messages?.length ?? 0) + (s?.runs?.at(-1)?.at ?? "");
-    if (key === last) return; last = key;
-    flashNow = lastRuns != null && s?.runs?.length !== lastRuns; lastRuns = s?.runs?.length ?? 0;
-    const app = document.getElementById("app");
-    if (!s) { app.innerHTML = mode === "cloud" ? `<div class="empty">No plan yet. Paste or load a message pack above and press <b>Start a new plan</b>.</div>` : `<div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div>`; return; }
-    const ok = s.validation?.ok;
-    const v = document.getElementById("valid"); v.textContent = ok ? "✓ Plan is ready" : "! Plan needs attention"; v.className = "pill " + (ok ? "ok" : "bad");
-    const model = s.runs.at(-1)?.calls.at(-1)?.model ?? "";
-    document.getElementById("meta").textContent = `${model} · ${s.runs.reduce((t, r) => t + r.totalTokens, 0).toLocaleString()} tokens · ${s.messages.length} messages`;
-    window.__s = s;
-    app.innerHTML = tab === "plan" ? planView(s) : tab === "messages" ? s.messages.map(msgView).join("") : tab === "outbox" ? outboxView(s) : traceView(s);
-  } catch (e) { /* server restarting */ }
+function closeComposer() {
+  $("composer").hidden = true; $("c-status").innerHTML = "";
+  const b = $("open-composer"); if (b) { b.setAttribute("aria-expanded", "false"); b.focus({ preventScroll: true }); b.scrollIntoView({ block: "nearest" }); }
 }
-document.addEventListener("click", async (e) => {
-  const b = e.target.closest("[data-copy]"); if (!b) return;
-  const d = window.__s?.outbox?.[+b.dataset.copy]; if (!d) return;
-  try { await navigator.clipboard.writeText((d.subject ? `Subject: ${d.subject}\n\n` : "") + d.body); b.textContent = "✓ Copied"; } catch { b.textContent = "Copy failed"; }
-  setTimeout(() => (b.textContent = "⧉ Copy"), 1500);
-});
-// ---------- theme ----------
-try { if (localStorage.getItem("theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch {}
-document.getElementById("theme").onclick = () => { const d = document.documentElement.dataset.theme !== "dark"; document.documentElement.dataset.theme = d ? "dark" : ""; try { localStorage.setItem("theme", d ? "dark" : "light"); } catch {} };
-// ---------- composer: type, paste or speak a new message ----------
-const $ = (id) => document.getElementById(id);
-$("c-date").valueAsDate = new Date();
 function composed() {
   const t = $("c-text").value.trim(); if (!t) return "";
-  if (/^\s*\S+\s*\|/m.test(t)) return t; // already in "ID | date | sender | message" form
-  const n = (window.__s?.messages?.length ?? 0) + 1;
+  if (composeMode === "pack" || /^\s*#?\S+\s*\|/m.test(t)) return t;
+  const n = (state?.messages?.length ?? 0) + 1;
   const d = $("c-date").value ? new Date($("c-date").value + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
-  const ch = $("c-channel").value;
-  return `UI${n} | ${d} | ${$("c-sender").value.trim() || "Unknown sender"} | ${ch === "Notice" ? "" : `[${ch}] `}${t.replace(/\s*\n\s*/g, " ")}`;
+  const ch = $("c-channel").value, who = $("c-sender").value.trim();
+  return `UI${n} | ${d} | ${who || "Sender not given"} | ${ch === "Notice" ? "" : `[${ch}] `}${t.replace(/\s*\n\s*/g, " ")}`;
 }
-async function send(fresh = false) {
-  const text = fresh ? $("c-text").value.trim() : composed(); const st = $("c-status");
-  if (!text) { st.innerHTML = `<span class="warn">Type or say a message first.</span>`; $("c-text").focus(); return; }
-  $("c-send").disabled = true; $("c-send").textContent = "Updating…"; st.innerHTML = `<span class="mute">Reading your message and updating the plan…</span>`;
+async function send() {
+  const text = composed(), st = $("c-status"), fresh = composeMode === "pack";
+  if (!text) { st.innerHTML = `<span class="bad">Write or paste a message first.</span>`; $("c-text").focus(); return; }
+  if (mode === "cloud" && !configured) { st.innerHTML = `<span class="bad">Live updates are switched off on this deployment (no model key).</span>`; return; }
+  const senderField = $("c-sender").value.trim();
+  pending = true; lastError = null; $("c-send").disabled = true; st.innerHTML = `<span class="muted">Working… The last accepted plan stays in place until this finishes.</span>`; render(true);
   try {
-    let j;
+    let next;
     if (mode === "cloud") {
-      const r = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, state: fresh ? null : cloudState, source: fresh ? "new plan" : "web" }) });
-      const b = await r.json().catch(() => ({ error: r.statusText }));
+      const r = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, state: fresh ? null : state, source: fresh ? "new plan" : "web" }) });
+      const b = await r.json().catch(() => ({ error: `Server answered ${r.status}` }));
       if (!r.ok) throw new Error(b.error || r.statusText);
-      keep(b.state); j = b.run;
+      next = b.state;
     } else {
-      const r = await fetch("/api/message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
-      j = await r.json();
-      if (!r.ok) throw new Error(j.error || r.statusText);
+      const r = await fetch("/api/message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, fresh }) });
+      const b = await r.json().catch(() => ({ error: `Server answered ${r.status}` }));
+      if (!r.ok) throw new Error(b.error || r.statusText);
+      const s2 = await fetch("/api/state", { cache: "no-store" }); next = await s2.json();
     }
-    const failed = j.notes.find((x) => x.startsWith("[error] Run stopped"));
-    if (failed) throw new Error(failed.replace("[error] Run stopped: ", "").replace(" set GEMINI_API_KEY in .env.", " a model key has not been added yet."));
-    last = ""; await tick(); // load the new plan first so the headline is computed from it
-    // headline = the decision on the message, not just "request finished"
-    const rej = j.notes.filter((x) => x.startsWith("[rejected]")).map((x) => x.replace(/^\[rejected\]\s*/, ""));
-    const ch = (window.__s && window.__s.prevPlan) ? diffPlan(window.__s.prevPlan, window.__s.plan).out : [];
-    const changed = ch.length > 0;
-    const head = fresh ? `<b class="ok">✓ New plan made</b> from ${window.__s?.messages?.length ?? 0} messages${rej.length ? `; ${rej.length} rejected (see Messages)` : ""}.`
-      : rej.length && !changed ? `<b class="bad">✕ Message rejected.</b> ${esc(rej[0])} The accepted plan is unchanged.`
-      : rej.length ? `<b class="warn">Partly used.</b> ${esc(ch[0].text)}. Rejected: ${esc(rej[0])}`
-      : changed ? `<b class="ok">✓ Plan updated.</b> ${esc(ch[0].text)}${ch.length > 1 ? ` (+${ch.length - 1} more change${ch.length > 2 ? "s" : ""} below)` : ""}`
-      : `<b class="mute">No change.</b> The message did not change the plan.`;
-    st.innerHTML = `<span>${head}</span> <span class="${j.valid ? "ok" : "bad"}">${j.valid ? "Plan is valid" : "Plan is not valid — see checks"}</span> <span class="mute">· ${j.calls} model call${j.calls === 1 ? "" : "s"} · ${j.tokens} tokens · ${(j.ms / 1000).toFixed(1)} s</span>` +
-      j.notes.map((n) => `<div class="${n.startsWith("[rejected]") ? "bad" : "warn"}">${esc(n)}</div>`).join("");
-    $("c-text").value = ""; tab = "plan"; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === "plan")); last = ""; await tick();
-    window.scrollTo({ top: $("app").offsetTop - 70, behavior: "smooth" });
-  } catch (e) { st.innerHTML = `<span class="bad">Couldn’t update the plan: ${esc(e.message)} Your current plan is unchanged.</span>`; }
-  finally { $("c-send").disabled = false; $("c-send").textContent = "Update my plan"; }
+    const stopped = next?.runs?.at(-1)?.notes?.find((x) => x.kind === "error" && /Run stopped/.test(x.text));
+    if (stopped && !fresh) throw new Error(stopped.text.replace(/^Run stopped:\s*/, ""));
+    if (!fresh && next?.runs?.at(-1)?.at) { senderNotes[next.runs.at(-1).at] = senderField; store.set("mtm-sender-notes", JSON.stringify(senderNotes)); }
+    if (mode === "cloud") keepMine(next); else state = next;
+    $("c-text").value = ""; st.innerHTML = "";
+    pending = false; tab = "plan"; document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === "plan")));
+    $("composer").hidden = true; render(true);
+    const d = $("decision"); if (d) { d.setAttribute("tabindex", "-1"); d.focus({ preventScroll: true }); d.scrollIntoView({ block: "start", behavior: "smooth" }); }
+  } catch (e) {
+    pending = false; lastError = `${e.message}`;
+    st.innerHTML = `<span class="bad">Couldn't process the message: ${esc(e.message)} Your last accepted plan is unchanged.</span>`; render(true);
+  } finally { $("c-send").disabled = false; }
 }
-$("c-send").onclick = () => send(false);
-$("c-new").onclick = () => { if (!$("c-text").value.trim()) { $("c-status").innerHTML = `<span class="warn">Paste a whole message pack (or load a .txt file) first.</span>`; return; } send(true); };
-$("c-file").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; $("c-text").value = (await f.text()).replace(/^\uFEFF/, ""); $("c-status").innerHTML = `<span class="mute">Loaded ${esc(f.name)}. Press <b>Start a new plan</b> to plan from it, or <b>Update my plan</b> to add it.</span>`; e.target.value = ""; };
-$("c-reset").onclick = async () => { try { localStorage.removeItem("mtm-state"); } catch {} cloudState = undefined; last = ""; $("c-status").innerHTML = `<span class="mute">Back to the saved demo plan.</span>`; await tick(); };
-$("c-clear").onclick = () => { $("c-text").value = ""; $("c-status").textContent = ""; };
-$("c-text").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); });
+
+// ---------------- events ----------------
+document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { highlight = null; setTab(b.dataset.tab); }));
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("button, a"); if (!t) return;
+  if (t.id === "open-composer") { $("composer").hidden ? openComposer("message") : closeComposer(); return; }
+  if (t.dataset.gotoMsg) { highlight = t.dataset.gotoMsg; msgFilter = "all"; setTab("messages"); return; }
+  if (t.dataset.goto) { highlight = null; setTab(t.dataset.goto); return; }
+  if (t.dataset.filter) { msgFilter = t.dataset.filter; highlight = null; render(true); return; }
+  if (t.dataset.copy) { const d = state?.outbox?.[+t.dataset.copy]; if (!d) return; try { await navigator.clipboard.writeText((d.subject ? `Subject: ${d.subject}\n\n` : "") + d.body); t.textContent = "Copied"; } catch { t.textContent = "Copy failed"; } setTimeout(() => (t.textContent = "Copy"), 1500); }
+});
+$("c-send").addEventListener("click", send);
+$("c-close").addEventListener("click", closeComposer);
+$("c-text").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); if (e.key === "Escape" && state?.plan) closeComposer(); });
+$("c-packmode").addEventListener("click", () => openComposer(composeMode === "pack" ? "message" : "pack"));
+$("c-file").addEventListener("change", async (e) => { const f = e.target.files[0]; if (!f) return; $("c-text").value = (await f.text()).replace(/^﻿/, ""); if (state?.plan && composeMode !== "pack") openComposer("pack"); $("c-status").innerHTML = `<span class="muted">Loaded ${esc(f.name)}. Press “Plan from this pack”.</span>`; e.target.value = ""; });
+$("c-reset").addEventListener("click", async () => { if (!confirm("Forget your plan in this browser and show the saved example?")) return; store.del("mtm-state"); state = (await loadExample()) || null; origin = "example"; lastError = null; closeComposer(); render(true); });
+$("download").addEventListener("click", () => {
+  if (!state) return;
+  const blob = new Blob([exportText(state)], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `mtm-plan-and-trace-${new Date().toISOString().slice(0, 10)}.txt`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+$("print").addEventListener("click", () => { if (tab !== "plan") setTab("plan"); setTimeout(() => window.print(), 50); });
+const setTheme = (t) => { document.documentElement.dataset.theme = t; $("theme").textContent = t === "dark" ? "Light" : "Dark"; };
+setTheme(store.get("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+$("theme").addEventListener("click", () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; setTheme(t); store.set("theme", t); });
+$("c-date").valueAsDate = new Date();
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SR) { $("c-mic").disabled = true; $("c-mic").title = "Voice input needs Chrome or Edge"; $("c-lang").hidden = true; }
+if (!SR) { $("c-mic").disabled = true; $("c-mic").title = "Voice input needs Chrome or Edge"; }
 else {
   let rec = null;
-  $("c-mic").onclick = () => {
+  $("c-mic").addEventListener("click", () => {
     if (rec) { rec.stop(); return; }
     rec = new SR(); rec.lang = $("c-lang").value; rec.interimResults = true; rec.continuous = true;
     const base = $("c-text").value ? $("c-text").value.trim() + " " : "";
     rec.onresult = (e) => { let t = ""; for (const r of e.results) t += r[0].transcript; $("c-text").value = base + t; };
-    rec.onend = () => { rec = null; $("c-mic").classList.remove("on"); $("c-mic").textContent = "🎤 Speak"; };
-    rec.onerror = (e) => { $("c-status").innerHTML = `<span class="warn">Voice: ${esc(e.error)}</span>`; };
-    rec.start(); $("c-mic").classList.add("on"); $("c-mic").textContent = "■ Stop";
-  };
+    rec.onend = () => { rec = null; $("c-mic").classList.remove("on"); $("c-mic").textContent = "Speak"; };
+    rec.onerror = (e) => { $("c-status").innerHTML = `<span class="bad">Voice input: ${esc(e.error)}</span>`; };
+    rec.start(); $("c-mic").classList.add("on"); $("c-mic").textContent = "Stop";
+  });
 }
-tick(); setInterval(tick, 2000);
+
+// ---------------- start ----------------
+mode = await detectMode();
+await load();
+if (params.has("new") && mode === "cloud" && !store.get("mtm-state")) openComposer("pack", false);
+render(true);
+if (mode === "local") setInterval(async () => { if (pending) return; try { const r = await fetch("/api/state", { cache: "no-store" }); const s = await r.json(); if (JSON.stringify(s?.runs?.at(-1)?.at) !== JSON.stringify(state?.runs?.at(-1)?.at)) { state = s; render(true); } } catch {} }, 2000);
 </script>
 </body>
 </html>

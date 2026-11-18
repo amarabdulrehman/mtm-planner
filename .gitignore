@@ -4,3 +4,4 @@ out/
 packs/
 *.log
 public/app.html
+public/lib/

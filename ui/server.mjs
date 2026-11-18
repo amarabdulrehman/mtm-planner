@@ -14,7 +14,13 @@ let busy = false;
 
 const json = (res, code, obj) => { res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" }); res.end(JSON.stringify(obj)); };
 
+// browser copies of the shared text module (used for "Download plan & full trace" and original wording)
+const LIB = { "/lib/text.js": "../src/text.mjs", "/lib/outbox.js": "../src/outbox.mjs" };
+const libFile = (p) => readFileSync(new URL(LIB[p], import.meta.url), "utf8").replace('from "./outbox.mjs"', 'from "./outbox.js"');
+
 createServer((req, res) => {
+  const path = req.url.split("?")[0];
+  if (LIB[path]) { res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store" }); return res.end(libFile(path)); }
   if (req.url === "/api/state") {
     const f = new URL("state.json", OUT);
     return json(res, 200, existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null);
@@ -24,12 +30,12 @@ createServer((req, res) => {
     req.on("data", (c) => { body += c; if (body.length > 20000) req.destroy(); });
     req.on("end", async () => {
       if (busy) return json(res, 409, { error: "An update is already running. Try again in a moment." });
-      let text;
-      try { text = String(JSON.parse(body).text ?? "").trim(); } catch { return json(res, 400, { error: "Bad request" }); }
+      let text, fresh = false;
+      try { const b = JSON.parse(body); text = String(b.text ?? "").trim(); fresh = !!b.fresh; } catch { return json(res, 400, { error: "Bad request" }); }
       if (!text) return json(res, 400, { error: "Message is empty" });
       busy = true;
       try {
-        const state = loadState(emptyState);
+        const state = fresh ? emptyState() : loadState(emptyState); // fresh = "Start a new plan" from a whole pack
         const trace = await run(state, text, "UI");
         save(state, trace);
         const n = state.runs.at(-1);

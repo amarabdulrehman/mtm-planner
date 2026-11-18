@@ -4,7 +4,6 @@ Reads a pack of messages (emails, WhatsApp texts, notices, in English or Roman U
 
 
 ## Submission files (judges' test pack)
-- **One file with the plan + AI call lines:** [`SUBMISSION.txt`](SUBMISSION.txt)
 - **Plan** (venue, schedule, food, judging, budget): [`SUBMIT_plan.md`](SUBMIT_plan.md)
 - **AI calls trace** (every model call: model, area, system prompt, input, output, tokens, time): [`SUBMIT_ai_calls_trace.txt`](SUBMIT_ai_calls_trace.txt)
 - Test pack used: [`judging_pack.txt`](judging_pack.txt) · run with `npm run reset` then `npm run plan -- judging_pack.txt`
@@ -24,11 +23,15 @@ npm run reset                   # start over with a new pack
 Each run prints the trace and saves `out/plan.md`, `out/trace.txt` (all runs), `out/outbox.txt` (reply drafts), `out/submission.txt` (plan + full trace + outbox, the file to upload) and `out/state.json`.
 
 ## UI features
-- **Add a message** box: type, paste or speak (browser speech recognition, zero model tokens) a new email/WhatsApp message; it runs the same engine as the command line (same limits: at most 5 model calls, under 1 minute) and the plan updates live.
-- **What changed** panel after every update: each cost, venue, meal, judge and schedule change with arrows, plus the reason for any rejected message. Changed cards are highlighted.
-- Budget bar and schedule timeline, check badges, judge assignments, dietary split.
-- **Outbox**: one reply draft per sender on their own channel, with Copy, Open in WhatsApp and Open in email buttons. Nothing is sent automatically.
-- Light/dark theme, works on phones, Print / save as PDF.
+Redesigned after the event (see the `hackathon-submission` tag for the version that was judged).
+- **Plan first:** after a run, the page leads with the event summary and the **latest decision**, worded from the actual outcome: "Plan updated" with the exact change, or "Message rejected" with the reason and what the accepted plan still contains. Links go to the original message and the full trace.
+- **Side-by-side figures:** attendance vs venue seats, meals vs people, judges needed vs available, schedule minutes, spend vs budget and remaining.
+- **Add message** opens on demand: message text first, with sender, channel, date and voice input under "Message details". Starting a new plan from a pack and resetting the example are kept apart from the everyday action.
+- **Messages** tab with filters (Rejected, Used, Ignored and so on) and each message's original wording. If the sender field was left blank, the plan says the sender was identified from the text and not verified.
+- **Trace** tab: every call numbered with its model, area, input/output/thinking/total tokens and time, plus the full prompt, input and output.
+- **Download plan & full trace:** one text file built by the same exporter as the command line (`src/text.mjs`), with no model calls. **Print** is separate.
+- **Outbox:** one draft reply per sender on their own channel. Nothing is sent automatically.
+- A failed or pending update always leaves the last accepted plan on screen. Light and dark themes, keyboard navigation, and it works on phones and at 200% zoom.
 
 ## How it works
 

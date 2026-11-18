@@ -3,265 +3,146 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MTM Planner · Your hackathon, planned from your inbox</title>
-<meta name="description" content="Forward the emails, WhatsApp messages and notices. MTM Planner reads them in English and Roman Urdu, plans venue, schedule, food, judging and budget, and shows exactly why." />
-<meta name="theme-color" content="#f5f5f7" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230071e3'/><text x='50' y='68' font-size='54' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>M</text></svg>" />
+<title>MTM Planner · Plan a hackathon from your messages</title>
+<meta name="description" content="Reads the organiser's message file and produces a schedule, venue, food, judging plan and budget, with every decision explained." />
+<meta name="theme-color" content="#FAF9F7" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2319191B'/><text x='16' y='22' font-size='17' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>M</text></svg>" />
 <style>
-  :root { --bg:#f5f5f7; --card:#fff; --text:#1d1d1f; --mute:#6e6e73; --line:rgba(0,0,0,.08); --acc:#0071e3; --ok:#248a3d; --okbg:#e8f7ec; --bad:#d70015; --badbg:#ffeceb; --wa:#25d366; --shadow:0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.08); }
+  :root { --canvas:#FAF9F7; --surface:#FFFFFF; --ink:#19191B; --muted:#6B6A66; --line:#DAD8D3; --soft:#F1EFEB; --acc:#2457C5; --ok:#1F7A4D; --bad:#B42318; color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root { --canvas:#141416; --surface:#1C1C1F; --ink:#EDECE9; --muted:#A09F9A; --line:#34343A; --soft:#232327; --acc:#8FB0F5; --ok:#5FC08A; --bad:#F2877B; color-scheme:dark; } }
   * { box-sizing:border-box; }
-  html { scroll-behavior:smooth; }
-  body { margin:0; background:var(--bg); color:var(--text); font:17px/1.47 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing:antialiased; letter-spacing:-.01em; overflow-x:hidden; }
-  a { color:var(--acc); text-decoration:none; }
-  .wrap { max-width:1120px; margin:0 auto; padding-left:24px; padding-right:24px; }
-  nav { position:sticky; top:0; z-index:10; background:rgba(245,245,247,.72); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid var(--line); }
-  nav .wrap { display:flex; align-items:center; gap:28px; height:52px; font-size:13px; }
-  .logo { display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; color:var(--text); }
-  .logo i { width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#0071e3,#7d4dff); display:grid; place-items:center; color:#fff; font-style:normal; font-size:12px; font-weight:700; }
-  nav a.l { color:var(--text); opacity:.8; } nav a.l:hover { opacity:1; }
+  body { margin:0; background:var(--canvas); color:var(--ink); font:16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:var(--acc); }
+  :focus-visible { outline:2px solid var(--acc); outline-offset:3px; border-radius:4px; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 28px; }
+  .num { font-variant-numeric:tabular-nums; }
+  header.top .wrap { display:flex; align-items:center; gap:24px; height:62px; }
+  .brand { font-weight:650; color:var(--ink); text-decoration:none; }
+  header.top nav { display:flex; gap:20px; font-size:14px; }
+  header.top nav a { color:var(--muted); text-decoration:none; } header.top nav a:hover { color:var(--ink); }
   .grow { flex:1; }
-  .pillbtn { background:var(--acc); color:#fff !important; padding:7px 16px; border-radius:999px; font-weight:500; transition:filter .2s, transform .15s; display:inline-flex; align-items:center; gap:6px; }
-  .pillbtn:hover { filter:brightness(1.08); } .pillbtn:active { transform:scale(.97); }
-  .pillbtn.big { font-size:17px; padding:13px 26px; }
-  .ghost { color:var(--acc); padding:13px 22px; font-size:17px; display:inline-flex; align-items:center; gap:6px; }
-  .ghost:hover { text-decoration:underline; }
-  /* hero */
-  .hero { text-align:center; padding:84px 0 40px; position:relative; }
-  .hero::before { content:""; position:absolute; inset:-200px -20% auto; height:700px; background:radial-gradient(600px 300px at 30% 40%, rgba(0,113,227,.13), transparent 70%), radial-gradient(500px 280px at 72% 30%, rgba(125,77,255,.12), transparent 70%); z-index:-1; pointer-events:none; }
-  .eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:500; color:var(--mute); background:var(--card); padding:6px 14px; border-radius:999px; box-shadow:var(--shadow); }
-  .eyebrow b { width:7px; height:7px; border-radius:50%; background:#34c759; box-shadow:0 0 0 4px rgba(52,199,89,.2); animation:beat 2s infinite; }
-  @keyframes beat { 50% { box-shadow:0 0 0 7px rgba(52,199,89,.05); } }
-  h1 { font-size:clamp(40px,7vw,80px); line-height:1.04; letter-spacing:-.045em; font-weight:700; margin:22px auto 18px; max-width:900px; }
-  .grad { background:linear-gradient(90deg,#0071e3,#7d4dff 50%,#e0457b); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .lead { font-size:clamp(18px,2.2vw,22px); color:var(--mute); max-width:720px; margin:0 auto 30px; line-height:1.45; }
-  .ctas { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  /* live stage */
-  .stage { margin:56px auto 0; display:grid; grid-template-columns:1fr 60px 1.1fr; gap:0; align-items:center; text-align:left; max-width:1040px; }
-  .panel { background:var(--card); border-radius:24px; box-shadow:var(--shadow); padding:20px; min-height:430px; position:relative; overflow:hidden; }
-  .panel h4 { margin:0 0 14px; font-size:13px; color:var(--mute); font-weight:500; display:flex; align-items:center; gap:8px; }
-  .dots { display:flex; gap:6px; } .dots i { width:10px; height:10px; border-radius:50%; background:#ff5f57; } .dots i:nth-child(2) { background:#febc2e; } .dots i:nth-child(3) { background:#28c840; }
-  .m { border-radius:16px; padding:10px 14px; margin-bottom:10px; font-size:14px; line-height:1.4; opacity:0; transform:translateY(10px) scale(.98); transition:all .5s cubic-bezier(.2,.8,.2,1); position:relative; }
-  .m.in { opacity:1; transform:none; }
-  .m small { display:block; font-size:11px; font-weight:600; margin-bottom:3px; letter-spacing:.01em; }
-  .m.email { background:#f2f2f7; } .m.email small { color:var(--acc); }
-  .m.wa { background:#e7fbe9; margin-left:24px; } .m.wa small { color:#128c7e; }
-  .m.notice { background:#fff8e6; } .m.notice small { color:#b25000; }
-  .m .stamp { position:absolute; right:10px; top:8px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; opacity:0; transform:scale(.6) rotate(-6deg); transition:all .35s cubic-bezier(.3,1.6,.5,1); }
-  .m .stamp.on { opacity:1; transform:none; }
-  .stamp.okk { background:var(--okbg); color:var(--ok); } .stamp.no { background:var(--badbg); color:var(--bad); }
-  .flow { display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--mute); font-size:11px; }
-  .flow .orb { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#0071e3,#7d4dff); display:grid; place-items:center; color:#fff; font-size:16px; box-shadow:0 8px 20px rgba(0,113,227,.35); animation:glow 2.4s ease-in-out infinite; }
-  @keyframes glow { 50% { box-shadow:0 8px 28px rgba(125,77,255,.5); transform:scale(1.06); } }
-  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .tile { background:#f5f5f7; border-radius:14px; padding:12px 14px; transition:background .4s; }
-  .tile .k { font-size:11px; color:var(--mute); font-weight:500; }
-  .tile .v { font-size:20px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
-  .tile.hl { background:#e8f1fd; }
-  .bar { display:flex; height:10px; border-radius:6px; overflow:hidden; background:#e8e8ed; gap:2px; margin:12px 0 4px; }
-  .bar div { height:100%; width:0; transition:width .9s cubic-bezier(.2,.8,.2,1); }
-  .checks { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
-  .checks span { font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#f2f2f7; color:var(--mute); transition:all .3s; }
-  .checks span.on { background:var(--okbg); color:var(--ok); }
-  .why { font-size:12.5px; color:var(--bad); background:var(--badbg); border-radius:12px; padding:8px 12px; margin-top:12px; opacity:0; transform:translateY(6px); transition:all .4s; }
-  .why.on { opacity:1; transform:none; }
-  /* sections */
-  section { padding:96px 0; }
-  .kicker { color:var(--acc); font-weight:600; font-size:15px; margin-bottom:8px; }
-  h2 { font-size:clamp(32px,4.6vw,52px); letter-spacing:-.035em; line-height:1.08; margin:0 0 16px; font-weight:700; }
-  .sub { color:var(--mute); font-size:19px; max-width:640px; margin:0 0 44px; }
-  .center { text-align:center; } .center .sub { margin-left:auto; margin-right:auto; }
-  .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
-  .stat { background:var(--card); border-radius:20px; padding:22px; box-shadow:var(--shadow); }
-  .stat .n { font-size:36px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
-  .stat .t { color:var(--mute); font-size:14px; }
-  .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; counter-reset:s; }
-  .step { background:var(--card); border-radius:22px; padding:26px; box-shadow:var(--shadow); position:relative; }
-  .step::before { counter-increment:s; content:counter(s); display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:var(--text); color:#fff; font-weight:600; font-size:15px; margin-bottom:16px; }
-  .step h3 { margin:0 0 6px; font-size:20px; letter-spacing:-.02em; }
-  .step p { margin:0; color:var(--mute); font-size:15px; }
-  .step .tagm { display:inline-block; margin-top:12px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; background:#e8f1fd; color:var(--acc); }
-  .step .tagm.code { background:#f2f2f7; color:var(--text); }
-  .bento { display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
-  .b { --x:50%; --y:50%; background:var(--card); border-radius:24px; padding:30px; box-shadow:var(--shadow); position:relative; overflow:hidden; transition:transform .3s cubic-bezier(.2,.8,.2,1); }
-  .b::after { content:""; position:absolute; inset:0; background:radial-gradient(420px circle at var(--x) var(--y), rgba(0,113,227,.09), transparent 45%); opacity:0; transition:opacity .3s; pointer-events:none; }
-  .b:hover { transform:translateY(-3px); } .b:hover::after { opacity:1; }
-  .b .ic { font-size:30px; margin-bottom:14px; }
-  .b h3 { margin:0 0 8px; font-size:22px; letter-spacing:-.02em; }
-  .b p { margin:0; color:var(--mute); font-size:15.5px; }
-  .s2 { grid-column:span 2; } .s3 { grid-column:span 3; } .s4 { grid-column:span 4; }
-  .b.dark { background:#1d1d1f; color:#f5f5f7; } .b.dark p { color:#a1a1a6; }
-  .mini { margin-top:18px; background:#f5f5f7; border-radius:14px; padding:12px 14px; font-size:13px; }
-  .b.dark .mini { background:#2c2c2e; }
-  .mono { font:12.5px/1.6 "SF Mono", ui-monospace, Menlo, Consolas, monospace; }
-  .trace { background:#1d1d1f; color:#e5e5ea; border-radius:24px; padding:28px; box-shadow:var(--shadow); overflow:auto; }
-  .trace .hd { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
-  .chip { font-size:11px; font-weight:600; padding:3px 10px; border-radius:999px; background:rgba(10,132,255,.18); color:#64d2ff; }
-  .chip.g { background:rgba(48,209,88,.16); color:#30d158; } .chip.o { background:rgba(255,159,10,.16); color:#ff9f0a; }
-  .trace pre { margin:0; white-space:pre-wrap; word-break:break-word; color:#a1a1a6; max-height:240px; overflow:auto; }
-  .cta { background:linear-gradient(135deg,#0b1f3a,#2a1457); color:#fff; border-radius:32px; padding:72px 32px; text-align:center; position:relative; overflow:hidden; }
-  .cta::before { content:""; position:absolute; width:500px; height:500px; border-radius:50%; background:radial-gradient(circle, rgba(0,113,227,.45), transparent 65%); top:-220px; left:-120px; }
-  .cta::after { content:""; position:absolute; width:460px; height:460px; border-radius:50%; background:radial-gradient(circle, rgba(224,69,123,.35), transparent 65%); bottom:-240px; right:-80px; }
-  .cta > * { position:relative; z-index:1; }
-  .cta h2 { color:#fff; } .cta p { color:#c7c7cc; font-size:19px; margin:0 auto 30px; max-width:560px; }
-  .cta .pillbtn { background:#fff; color:#1d1d1f !important; }
-  footer { padding:40px 0 60px; color:var(--mute); font-size:13px; }
-  footer .wrap { display:flex; gap:16px; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:22px; }
-  .reveal { opacity:0; transform:translateY(24px); transition:opacity .8s cubic-bezier(.2,.8,.2,1), transform .8s cubic-bezier(.2,.8,.2,1); }
-  .reveal.in { opacity:1; transform:none; }
-  @media (max-width:960px) { .stage { grid-template-columns:1fr; gap:16px; } .flow { flex-direction:row; justify-content:center; } .flow .orb { transform:rotate(90deg); } .stats { grid-template-columns:repeat(2,1fr); } .steps { grid-template-columns:1fr 1fr; } .bento { grid-template-columns:1fr 1fr; } .s2, .s3, .s4 { grid-column:span 2; } nav a.l { display:none; } }
-  @media (max-width:560px) { .steps { grid-template-columns:1fr; } .stats { grid-template-columns:1fr 1fr; } section { padding:64px 0; } .hero { padding-top:56px; } }
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } .reveal, .m { opacity:1; transform:none; } }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border-radius:8px; font-weight:550; text-decoration:none; border:1px solid var(--line); color:var(--ink); background:var(--surface); }
+  .btn:hover { border-color:var(--muted); }
+  .btn.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  @media (prefers-color-scheme: dark) { .btn.primary { color:#0E1630; } }
+  .btn.sm { padding:7px 14px; font-size:14px; }
+
+  .hero { padding:96px 0 72px; border-bottom:1px solid var(--line); }
+  .hero h1 { font-size:clamp(36px,6vw,64px); line-height:1.05; letter-spacing:-.035em; margin:0 0 20px; max-width:760px; font-weight:680; }
+  .hero p.lede { font-size:clamp(17px,2vw,20px); color:var(--muted); max-width:620px; margin:0 0 32px; }
+  .actions { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .hint { font-size:14px; color:var(--muted); margin-top:16px; max-width:620px; }
+
+  section { padding:72px 0; border-bottom:1px solid var(--line); }
+  .kicker { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 10px; font-weight:600; }
+  h2 { font-size:clamp(26px,3.4vw,36px); letter-spacing:-.02em; line-height:1.15; margin:0 0 14px; font-weight:650; }
+  .intro { color:var(--muted); max-width:640px; margin:0 0 36px; }
+
+  .example-label { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; padding:14px 18px; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--acc); border-radius:10px; margin-bottom:24px; font-size:15px; }
+  .example-label span { color:var(--muted); }
+  .walk { display:grid; grid-template-columns:repeat(3,1fr); border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+  .step { padding:24px; border-left:1px solid var(--line); }
+  .step:first-child { border-left:0; }
+  .step .n { font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .step h3 { margin:0 0 6px; font-size:19px; letter-spacing:-.01em; }
+  .step p { margin:0 0 14px; color:var(--muted); font-size:15px; }
+  .fig { border-top:1px solid var(--line); padding-top:12px; font-size:14px; }
+  .fig div { display:flex; justify-content:space-between; gap:12px; padding:3px 0; }
+  .fig div span:first-child { color:var(--muted); }
+  .fig b { font-weight:600; text-align:right; }
+  .quote { font-size:14px; background:var(--soft); border-radius:8px; padding:10px 12px; margin:10px 0 0; }
+  .reject { color:var(--bad); font-size:14px; margin-top:8px; }
+
+  .facts { display:grid; grid-template-columns:repeat(2,1fr); gap:0 48px; }
+  .facts div { padding:18px 0; border-top:1px solid var(--line); }
+  .facts h3 { margin:0 0 4px; font-size:17px; }
+  .facts p { margin:0; color:var(--muted); font-size:15px; }
+  footer { padding:36px 0 56px; font-size:14px; color:var(--muted); }
+  footer .wrap { display:flex; gap:20px; flex-wrap:wrap; }
+  @media (max-width:860px) { .walk { grid-template-columns:1fr; } .step { border-left:0; border-top:1px solid var(--line); } .step:first-child { border-top:0; } .facts { grid-template-columns:1fr; } header.top nav { display:none; } .hero { padding:56px 0 48px; } section { padding:52px 0; } }
+  @media (max-width:520px) { .wrap { padding:0 18px; } }
 </style>
 </head>
 <body>
-<nav><div class="wrap">
-  <a class="logo" href="/"><i>M</i>MTM Planner</a>
-  <a class="l" href="#how">How it works</a><a class="l" href="#features">Features</a><a class="l" href="#trust">Transparency</a>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/">MTM Planner</a>
+  <nav aria-label="Page"><a href="#walkthrough">How it works</a><a href="#details">What it guarantees</a><a href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener">Source</a></nav>
   <span class="grow"></span>
-  <a class="l" href="https://github.com/amarabdulrehman/mtm-planner" target="_blank" rel="noopener">GitHub</a>
-  <a class="pillbtn" href="/app">Open the planner</a>
-</div></nav>
+  <a class="btn sm" href="/app?new">Open planner</a>
+</div></header>
 
-<header class="hero wrap">
-  <span class="eyebrow"><b></b>Built for Mind to Machine 2.0 · GDGoC CUI Wah</span>
-  <h1>Your hackathon, <span class="grad">planned from your inbox.</span></h1>
-  <p class="lead">Forward the emails, WhatsApp messages and notices. MTM Planner reads them in English and Roman Urdu, builds a plan that fits the budget, the venue and the clock, and tells you exactly why.</p>
-  <div class="ctas"><a class="pillbtn big" href="/app">Open the planner →</a><a class="ghost" href="#how">See how it works ›</a></div>
-
-  <div class="stage" aria-label="Animated example: messages come in, the plan updates">
-    <div class="panel">
-      <h4><span class="dots"><i></i><i></i><i></i></span>Inbox</h4>
-      <div id="inbox"></div>
+<main>
+  <div class="hero"><div class="wrap">
+    <h1>Plan a hackathon from your messages.</h1>
+    <p class="lede">The planner reads the organiser's message file (emails, WhatsApp texts and notices, in English or Roman Urdu) and produces a schedule, venue, food, judging plan and budget, with the reason behind every decision.</p>
+    <div class="actions">
+      <a class="btn primary" href="/app?new">Open planner</a>
+      <a class="btn" href="/app?example">View saved example</a>
     </div>
-    <div class="flow"><div class="orb">→</div><span>reads</span></div>
-    <div class="panel">
-      <h4>📋 The plan <span class="grow"></span><span id="pstate" style="font-weight:600;color:var(--mute)">waiting…</span></h4>
-      <div class="row2">
-        <div class="tile" id="t-people"><div class="k">People on site</div><div class="v" data-v="0">—</div></div>
-        <div class="tile" id="t-venue"><div class="k">Venue</div><div class="v">—</div></div>
-        <div class="tile" id="t-food"><div class="k">Lunch boxes</div><div class="v">—</div></div>
-        <div class="tile" id="t-judges"><div class="k">Judges</div><div class="v">—</div></div>
-      </div>
-      <div style="margin-top:14px;font-size:13px;color:var(--mute)" id="spend">Budget</div>
-      <div class="bar"><div id="b1" style="background:#0071e3"></div><div id="b2" style="background:#34c759"></div><div id="b3" style="background:#af52de"></div><div id="b4" style="background:#ff9500"></div></div>
-      <div class="checks" id="checks"><span>Budget</span><span>Venue fits</span><span>Schedule</span><span>Judges</span><span>Meals</span><span>Figures</span><span>All areas</span></div>
-      <div class="why" id="why">✕ Budget change rejected: a student society can't change the approved budget. Plan kept as it was.</div>
+    <p class="hint"><b>Open planner</b> starts empty: paste or load your own messages. <b>View saved example</b> opens a real, saved run that you can explore and add messages to.</p>
+  </div></div>
+
+  <section id="walkthrough"><div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2>One message pack, three steps.</h2>
+    <p class="intro">A small model only reads the messages. Plain code does every calculation and check, so the figures are exact and each one points back to the message it came from.</p>
+    <div class="example-label"><b>Saved example</b><span id="ex-src">Loading the saved run…</span></div>
+    <div class="walk">
+      <div class="step"><div class="n">Step 1</div><h3>Read</h3><p>One model call turns the whole pack into facts: who sent each message, when, and what it says. A small extra call is made only when a message states a rule in words, such as "step-free access".</p>
+        <div class="fig" id="f-read"><div><span>Messages read</span><b class="num">–</b></div></div></div>
+      <div class="step"><div class="n">Step 2</div><h3>Decide</h3><p>Each fact must come from someone allowed to change it, and the newest message wins. A message that would break the plan is rejected with a reason.</p>
+        <div class="fig" id="f-decide"><div><span>Used</span><b class="num">–</b></div></div></div>
+      <div class="step"><div class="n">Step 3</div><h3>Plan and check</h3><p>Code builds the plan and runs the same checks after every new message, so the plan stays valid.</p>
+        <div class="fig" id="f-plan"><div><span>Checks</span><b class="num">–</b></div></div></div>
     </div>
-  </div>
-  <p style="color:var(--mute);font-size:13px;margin-top:18px">Illustration with example messages. Open the planner to see a real run.</p>
-</header>
+    <div class="actions" style="margin-top:24px"><a class="btn" href="/app?example">Explore this example</a></div>
+  </div></section>
 
-<section class="wrap reveal" id="numbers">
-  <div class="center"><div class="kicker">From a real run</div><h2>Small model. Tiny bill.<br>Every number shown.</h2><p class="sub" id="realsub">A whole message pack is read in a single small-model call. Everything else (sums, seat counts, judge timetables, checks) is plain code, so the plan is exact and the cost stays tiny.</p></div>
-  <div class="stats">
-    <div class="stat"><div class="n" id="s-msg">–</div><div class="t">messages read</div></div>
-    <div class="stat"><div class="n" id="s-calls">–</div><div class="t">model calls</div></div>
-    <div class="stat"><div class="n" id="s-tok">–</div><div class="t">tokens in total</div></div>
-    <div class="stat"><div class="n" id="s-sec">–</div><div class="t">seconds to plan</div></div>
-    <div class="stat"><div class="n" id="s-chk">–</div><div class="t">checks passed</div></div>
-  </div>
-</section>
+  <section id="details"><div class="wrap">
+    <p class="kicker">What it guarantees</p>
+    <h2>Built to stay correct when the messages change.</h2>
+    <div class="facts">
+      <div><h3>Same command for every message</h3><p><code>npm run plan -- messages.txt</code> for the first run and for every update. No flags.</p></div>
+      <div><h3>Updates are small</h3><p>A new message uses at most 5 model calls and usually 1. Areas with nothing new make no calls.</p></div>
+      <div><h3>Wrong messages are caught</h3><p>A sender without authority, an out-of-date price, or a change that leaves people without food is rejected with a plain reason.</p></div>
+      <div><h3>Everything is on the record</h3><p>Every model call is numbered with its model, area, input, output and tokens. Download the plan and full trace as one file.</p></div>
+      <div><h3>No facts in the code</h3><p>Every figure comes from the message file, so a pack it has never seen works without changes.</p></div>
+      <div><h3>Replies drafted, never sent</h3><p>Each sender gets a draft reply on the channel they used. A person always presses send.</p></div>
+    </div>
+  </div></section>
+</main>
 
-<section class="wrap" id="how">
-  <div class="reveal"><div class="kicker">How it works</div><h2>Four steps.<br>One of them uses AI.</h2><p class="sub">The model only reads. Code does the planning, so the arithmetic is always right and every decision can be traced back to a message.</p></div>
-  <div class="steps">
-    <div class="step reveal"><h3>Read</h3><p>One call to a small model turns every message, in English or Roman Urdu, into typed facts: who sent it, on which channel, on what date.</p><span class="tagm">1 model call</span></div>
-    <div class="step reveal"><h3>Weigh</h3><p>Newest message wins. Only the right person can change each fact: the caterer sets prices, the organiser sets the budget. Clashes are flagged, not hidden.</p><span class="tagm code">Code</span></div>
-    <div class="step reveal"><h3>Plan</h3><p>Headcount, cheapest hall that fits, meals for everyone, a judge timetable with no double-booking, and a schedule built around fixed times.</p><span class="tagm code">Code</span></div>
-    <div class="step reveal"><h3>Check</h3><p>Seven checks run on every update. If a message would break the plan, that message is rejected with a plain reason, and the plan stays valid.</p><span class="tagm code">Code</span></div>
-  </div>
-</section>
-
-<section class="wrap" id="features">
-  <div class="reveal center"><div class="kicker">Features</div><h2>Built for the people<br>running the day.</h2><p class="sub">Not a chatbot. A planner that keeps its promises when the messages keep changing.</p></div>
-  <div class="bento">
-    <div class="b s4 reveal"><div class="ic">🛡️</div><h3>Catches the wrong message</h3><p>A student asking to raise the budget, a caterer quoting yesterday's price, a request that would leave guests without a meal: each is rejected with the reason, and the plan stays valid.</p>
-      <div class="mini"><b style="color:var(--bad)">Rejected</b> · Student society: "Budget 10 lakh kar dein" <span style="color:var(--mute)">→ only the organiser can change the budget.</span></div></div>
-    <div class="b s2 dark reveal"><div class="ic">⚡</div><h3>Updates in seconds</h3><p>New message in, new plan out: usually one model call and a few seconds. Only what changed is re-read.</p></div>
-    <div class="b s2 reveal"><div class="ic">🎙️</div><h3>Just say it</h3><p>Type, paste, upload a .txt, or speak the message. Voice input runs in your browser, so it costs no model tokens.</p></div>
-    <div class="b s2 reveal"><div class="ic">✉️</div><h3>Replies, written for you</h3><p>A reply for every sender on the channel they used: WhatsApp for the caterer, email for the dean. One tap to open, you press send.</p></div>
-    <div class="b s2 reveal"><div class="ic">🔍</div><h3>See what changed</h3><p>Every update shows each cost, seat, meal and time slot that moved, with arrows and the reason why.</p></div>
-    <div class="b s3 reveal"><div class="ic">🧾</div><h3>Every call on the record</h3><p>Each model call is numbered with its model, area, full input and output, tokens and time. Nothing is hidden behind "AI magic".</p></div>
-    <div class="b s3 reveal"><div class="ic">🗓️</div><h3>A schedule that respects the clock</h3><p>Prayer breaks, hall changeovers and fixed judging windows are placed first; build time fills the gaps. Every judge gets a timetable.</p></div>
-  </div>
-</section>
-
-<section class="wrap reveal" id="trust">
-  <div class="kicker">Transparency</div><h2>Open the hood.</h2><p class="sub">This is a real call from the saved run: the exact model, the area it served, and what it cost.</p>
-  <div class="trace mono" id="trace"><div class="hd"><span class="chip">loading…</span></div><pre>Loading the saved run…</pre></div>
-</section>
-
-<section class="wrap reveal">
-  <div class="cta"><h2>Plan your hackathon in a minute.</h2><p>Paste your messages, or try the saved plan from a real run. No sign-up.</p><a class="pillbtn big" href="/app">Open the planner →</a></div>
-</section>
-
-<footer><div class="wrap"><span>MTM Planner · Built at Mind to Machine 2.0, GDGoC CUI Wah, 18 Nov 2026</span><span class="grow"></span><a href="https://github.com/amarabdulrehman/mtm-planner" target="_blank" rel="noopener">Source on GitHub</a><a href="/app">Open the planner</a></div></footer>
+<footer><div class="wrap"><span>MTM Planner · built at Mind to Machine 2.0, GDGoC CUI Wah, November 2026</span><span class="grow"></span><a href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener">Source on GitHub</a><a href="/app?new">Open planner</a></div></footer>
 
 <script>
-// ---------- hero animation: example messages flow in, the plan reacts ----------
-const MSGS = [
-  { c: "email", from: "Email · Dean's office", t: "Approved: 120 students in teams of 4, plus 18 staff, 09:00 to 13:00. Budget Rs 250,000.", ok: true, apply: { people: 138, judges: "—" } },
-  { c: "notice", from: "Notice · Facilities", t: "Hall B seats 140 for Rs 40,000. Hall C seats 200 for Rs 70,000.", ok: true, apply: { venue: "Hall B" } },
-  { c: "wa", from: "WhatsApp · Caterer", t: "Lunch box ab Rs 650 per head hai. Delivery free.", ok: true, apply: { food: 138 } },
-  { c: "email", from: "Email · Jury desk", t: "Ten judges free. 15 minutes per team, up to three teams each.", ok: true, apply: { judges: 10, people: 148, food: 148, venue2: "Hall C" } },
-  { c: "wa", from: "WhatsApp · Student society", t: "Budget 10 lakh kar dein please?", ok: false },
-];
 const $ = (id) => document.getElementById(id);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-function setTile(id, v) { const el = $(id); el.querySelector(".v").textContent = v; el.classList.add("hl"); setTimeout(() => el.classList.remove("hl"), 900); }
-function bars(p) { [[ "b1", p[0] ], [ "b2", p[1] ], [ "b3", p[2] ], [ "b4", p[3] ]].forEach(([id, w]) => ($(id).style.width = w + "%")); }
-async function loop() {
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  while (true) {
-    $("inbox").innerHTML = ""; ["t-people", "t-venue", "t-food", "t-judges"].forEach((id) => ($(id).querySelector(".v").textContent = "—")); $("t-venue").querySelector(".k").textContent = "Venue";
-    bars([0, 0, 0, 0]); document.querySelectorAll("#checks span").forEach((s) => s.classList.remove("on")); $("why").classList.remove("on");
-    $("pstate").textContent = "waiting…"; $("pstate").style.color = "var(--mute)"; $("spend").textContent = "Budget";
-    for (const m of MSGS) {
-      const d = document.createElement("div"); d.className = `m ${m.c}`; d.innerHTML = `<small>${m.from}</small>${m.t}<span class="stamp ${m.ok ? "okk" : "no"}">${m.ok ? "Used" : "Rejected"}</span>`;
-      $("inbox").appendChild(d); await sleep(60); d.classList.add("in"); await sleep(reduce ? 200 : 900);
-      $("pstate").textContent = "reading…";
-      await sleep(reduce ? 100 : 500); d.querySelector(".stamp").classList.add("on");
-      if (m.ok) {
-        const a = m.apply;
-        if (a.people) setTile("t-people", a.people);
-        if (a.venue) { setTile("t-venue", a.venue); bars([16, 0, 0, 0]); }
-        if (a.food && !a.venue2) { setTile("t-food", a.food + " × Rs 650"); bars([16, a.food * 650 / 2500, 0, 0]); }
-        if (a.food && a.venue2) setTile("t-food", a.food + " × Rs 650");
-        if (a.judges && a.judges !== "—") { setTile("t-judges", a.judges); }
-        if (a.venue2) { await sleep(reduce ? 0 : 500); setTile("t-venue", a.venue2 + " ↑"); $("t-venue").querySelector(".k").textContent = "Venue · 148 > 140 seats, moved"; bars([28, 38.5, 0, 0]); $("spend").textContent = "Budget · Rs 166,200 of Rs 250,000"; }
-      } else {
-        $("why").classList.add("on");
-      }
-      $("pstate").textContent = "updated"; $("pstate").style.color = "var(--ok)";
-      await sleep(reduce ? 300 : 700);
-    }
-    for (const s of document.querySelectorAll("#checks span")) { s.classList.add("on"); await sleep(reduce ? 0 : 120); }
-    $("pstate").textContent = "✓ Plan is valid · 7/7";
-    await sleep(5200);
-  }
-}
-loop();
-// ---------- scroll reveal + spotlight ----------
-const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && (e.target.classList.add("in"), io.unobserve(e.target))), { threshold: .05, rootMargin: "0px 0px -40px 0px" });
-setTimeout(() => document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in")), 4000);
-document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
-document.querySelectorAll(".b").forEach((b) => b.addEventListener("pointermove", (e) => { const r = b.getBoundingClientRect(); b.style.setProperty("--x", e.clientX - r.left + "px"); b.style.setProperty("--y", e.clientY - r.top + "px"); }));
-// ---------- real numbers from the saved run ----------
-function count(el, to, dec = 0) { const t0 = performance.now(); const f = (t) => { const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); el.textContent = (to * e).toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }); if (k < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
+const rs = (n) => "Rs " + Number(n).toLocaleString("en-US");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// "#5 Caterer: food.option (biryani box) {"price_per_head":700} -> {"price_per_head":850} (replaces #4)" -> a plain sentence
+function newestWins(t) {
+  const m = /^#(\S+)\s+([^:]+):\s*[a-z_.]+\s*(?:\(([^)]*)\))?\s*(\{.*?\}|\S+)\s*->\s*(\{.*?\}|\S+)\s*\(replaces #(\S+)\)/.exec(t);
+  if (!m) return "Newest message wins: " + t;
+  const [, id, who, item, a, b, oldId] = m; let from = a, to = b;
+  try { const A = JSON.parse(a), B = JSON.parse(b); if (A && typeof A === "object") { const k = Object.keys(B).find((k) => A[k] !== B[k]) ?? Object.keys(B)[0]; from = A[k]; to = B[k]; } } catch {}
+  const money = (v) => { const n = typeof v === "string" && /^\d+(\.\d+)?$/.test(v) ? Number(v) : v; return typeof n === "number" && n >= 100 ? rs(n) : String(v); };
+  return `Newest message wins: ${who.trim()}'s ${item ? item + " " : ""}${money(from)} in message #${oldId} is replaced by ${money(to)} in message #${id}.`;
+}
+const row = (k, v) => `<div><span>${esc(k)}</span><b class="num">${esc(v)}</b></div>`;
 fetch("/demo-state.json").then((r) => r.ok ? r.json() : null).then((s) => {
-  if (!s) return;
-  const first = s.runs[0] ?? { calls: [] };
-  const calls = s.runs.reduce((t, r) => t + r.calls.length, 0), tok = s.runs.reduce((t, r) => t + r.totalTokens, 0);
-  const sec = s.runs.reduce((t, r) => t + (r.runMs ?? 0), 0) / 1000;
-  const chk = s.validation?.checks ?? [];
-  const nums = new IntersectionObserver((es) => { if (!es[0].isIntersecting) return; nums.disconnect();
-    count($("s-msg"), s.messages.length); count($("s-calls"), calls); count($("s-tok"), tok); count($("s-sec"), sec, 1);
-    $("s-chk").textContent = `${chk.filter((c) => c.ok).length}/${chk.length}`; }, { threshold: .3 });
-  nums.observe($("numbers"));
-  const c = first.calls[0];
-  if (c) $("trace").innerHTML = `<div class="hd"><b style="color:#fff">Call ${c.n}</b><span class="chip">${esc(c.area)}</span><span class="chip g">${esc(c.model)}</span><span class="chip o">${c.tokens.total.toLocaleString()} tokens · ${(c.ms / 1000).toFixed(1)} s</span></div><pre>${esc("OUTPUT\n" + c.output.slice(0, 1400) + (c.output.length > 1400 ? " …" : ""))}</pre><div style="margin-top:12px;color:#a1a1a6;font-size:13px">Full system prompt, input and output for every call are in the planner's <a href="/app" style="color:#64d2ff">Trace</a> tab.</div>`;
-}).catch(() => {});
+  if (!s || !s.plan) { $("ex-src").textContent = "No saved example is available."; return; }
+  const first = s.runs[0], calls = first.calls, p = s.plan;
+  const src = String(first.source ?? "a message pack").split(/[\\/]/).pop();
+  $("ex-src").textContent = `A real run on ${src}, saved ${new Date(first.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}. The figures below come from that run.`;
+  const counts = {}; for (const m of s.messages) counts[m.status] = (counts[m.status] ?? 0) + 1;
+  $("f-read").innerHTML = row("Messages read", s.messages.length) + row("Model calls", calls.length) + row("Tokens", first.totalTokens.toLocaleString("en-US")) + row("Model", calls[0]?.model ?? "none");
+  const rej = s.messages.find((m) => m.status === "rejected");
+  const old = (first.notes ?? []).find((n) => n.kind === "superseded" || n.kind === "outdated");
+  $("f-decide").innerHTML = Object.entries(counts).map(([k, n]) => row(k[0].toUpperCase() + k.slice(1), n)).join("") +
+    (rej ? `<div class="reject">Rejected #${esc(rej.id)} ${esc(rej.sender)}: ${esc(rej.reasons[0] ?? "")}</div>`
+         : old ? `<p class="quote">${esc(newestWins(old.text))}</p>` : "");
+  const ok = (s.validation?.checks ?? []).filter((c) => c.ok).length, all = (s.validation?.checks ?? []).length;
+  $("f-plan").innerHTML = row("Venue", `${p.venue?.name} · ${p.venue?.capacity} seats`) + row("People on site", p.event.headcount) + row("Meals", p.food?.quantity) + row("Judges", `${p.judging.judgesNeeded} of ${p.judging.judgesAvailable}`) + row("Spend", `${rs(p.budget.spent)} of ${rs(p.budget.total)}`) + row("Checks", `${ok} of ${all} pass`);
+}).catch(() => { $("ex-src").textContent = "The saved example could not be loaded."; });
 </script>
 </body>
 </html>
