@@ -52,10 +52,24 @@ export function normRole(role, sender) {
   return "other";
 }
 
+// The model may wrap its answer: {"messages":[...]}, [{"messages":[...]}], [...messages], or one message.
+function unwrap(out) {
+  if (Array.isArray(out)) return out.flatMap(unwrap);
+  if (out && typeof out === "object") {
+    if (Array.isArray(out.messages)) return unwrap(out.messages);
+    if (out.facts || out.sender || out.constraints || out.ignored) return [out];
+  }
+  return [];
+}
+const usable = (m) => m && ((Array.isArray(m.facts) && m.facts.length) || (Array.isArray(m.constraints) && m.constraints.length) || m.ignored || Object.keys(m).some((k) => /^(event|budget|venue|food|judging|schedule)\./.test(k)));
+
 export async function readMessages(trace, text) {
-  const out = await call(trace, { area: "reading", system: READER_SYSTEM, input: text, maxOutputTokens: 4096 });
-  // accept {"messages":[...]}, a bare array, or a single message object
-  const msgs = Array.isArray(out?.messages) ? out.messages : Array.isArray(out) ? out : out && typeof out === "object" && (out.facts || out.sender) ? [out] : [];
+  let msgs = unwrap(await call(trace, { area: "reading", system: READER_SYSTEM, input: text, maxOutputTokens: 4096 }));
+  if (!msgs.some(usable)) {
+    // safety net: a reply with nothing usable is asked once more (both calls are in the trace)
+    trace.notes.push({ kind: "error", text: "Reading reply had no usable facts; asked the model once more." });
+    msgs = unwrap(await call(trace, { area: "reading", system: READER_SYSTEM, input: text, maxOutputTokens: 4096 }));
+  }
   return msgs.map((m, i) => ({
     id: m.id ?? i + 1,
     sender: String(m.sender ?? "unknown"),
