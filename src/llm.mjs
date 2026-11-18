@@ -102,8 +102,23 @@ export async function call(trace, { area, system, input, maxOutputTokens = 2048 
 }
 
 // Accept the first complete JSON value in the reply, ignoring text before or after it.
+// Repairs only trailing commas ("...},]") outside strings; everything else must already be valid JSON.
+function dropTrailingCommas(t) {
+  let out = "", inStr = false, esc = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (inStr) { out += c; if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') { inStr = true; out += c; continue; }
+    if (c === ",") { let j = i + 1; while (/\s/.test(t[j] ?? "")) j++; if (t[j] === "]" || t[j] === "}") continue; }
+    out += c;
+  }
+  return out;
+}
+
 function parseJson(text) {
-  const t = String(text).trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  const raw = String(text).trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  try { return JSON.parse(raw); } catch {}
+  const t = dropTrailingCommas(raw);
   try {
     return JSON.parse(t);
   } catch {
