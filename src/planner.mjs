@@ -30,6 +30,7 @@ export function buildPlan(store, decisions = {}) {
   const staff = num(staffE) ?? 0;
   if (!staffE) assumptions.push("No staff count given: assumed 0 staff.");
   const extras = get(store, "event.extra_people").map((e) => ({ who: e.item, n: Number(e.v) || 0, source: src(e) }));
+  for (const area of Object.keys(d)) for (const p of d[area].add_people ?? []) extras.push({ who: p.who, n: Number(p.n) || 0, source: "constraint" });
   sources.students = src(studentsE); sources.teams = teamsE ? src(teamsE) : `${src(studentsE)} / ${src(teamSizeE)}`;
   sources.hours = src(hoursE); sources.staff = src(staffE);
 
@@ -58,8 +59,8 @@ export function buildPlan(store, decisions = {}) {
   const committed = get(store, "budget.committed").map((e) => ({ item: e.item, amount: Number(e.v) || 0, source: src(e) }));
   const addedCosts = [...(d.budget.add_costs ?? []), ...(d.venue.add_costs ?? []), ...(d.food.add_costs ?? []), ...(d.schedule.add_costs ?? []), ...(d.judging.add_costs ?? [])]
     .map((c) => ({ item: c.item, amount: Number(c.amount) || 0, source: "constraint" }));
-  const reserve = Number(d.budget.reserve) || 0;
   const budgetTotal = num(get(store, "budget.total"));
+  const reserve = (Number(d.budget.reserve) || 0) + (budgetTotal && Number(d.budget.reserve_percent) ? Math.ceil((budgetTotal * Number(d.budget.reserve_percent)) / 100) : 0);
   sources.budget = src(get(store, "budget.total"));
 
   // ---- food options
@@ -79,7 +80,9 @@ export function buildPlan(store, decisions = {}) {
   const excludedVenue = new Set((d.venue.exclude ?? []).map((s) => String(s).toLowerCase()));
   const needFeatures = (d.venue.require_features ?? []).map((s) => String(s).toLowerCase());
   const venues = get(store, "venue.option").map((e) => ({
-    name: e.item, capacity: Number(e.v?.capacity) || 0, price: Number(e.v?.price) || 0,
+    name: e.item, capacity: Number(e.v?.capacity) || 0,
+    // a venue may quote per hour: cost = rate x event hours
+    price: Number(e.v?.price) || (Number(e.v?.price_per_hour) && hours ? Number(e.v.price_per_hour) * hours : 0),
     features: (e.v?.features ?? []).map((x) => String(x).toLowerCase()), source: src(e),
   }));
   const fits = (v) =>

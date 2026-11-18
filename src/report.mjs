@@ -14,7 +14,8 @@ export function traceText(trace, state) {
   L.push(`=== TRACE: ${trace.kind} (${trace.source}) at ${trace.started} ===`);
   for (const c of trace.calls) {
     L.push(`--- Call ${c.n} | model: ${c.model} | area: ${c.area} | tokens in ${c.tokens.input}, out ${c.tokens.output}${c.tokens.thinking ? `, thinking ${c.tokens.thinking}` : ""}, total ${c.tokens.total} | ${c.ms} ms`);
-    L.push(`INPUT:\n${c.input}`);
+    L.push(`INPUT (system prompt):\n${c.system ?? ""}`);
+    L.push(`INPUT (messages/context):\n${c.input}`);
     L.push(`OUTPUT:\n${c.output}`);
   }
   if (!trace.calls.length) L.push("(no model calls)");
@@ -71,5 +72,7 @@ export function save(state, trace) {
   writeFileSync(new URL("state.json", OUT), JSON.stringify(state, null, 1));
   writeFileSync(new URL("plan.md", OUT), planText(state));
   appendFileSync(new URL("trace.txt", OUT), t + "\n\n");
+  // one file to upload: final plan + full trace of every run
+  writeFileSync(new URL("submission.txt", OUT), planText(state) + "\n\n\n" + readFileSync(new URL("trace.txt", OUT), "utf8"));
   return t;
 }

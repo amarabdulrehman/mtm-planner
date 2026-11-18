@@ -27,15 +27,34 @@ const dateRank = (d) => { const t = d ? Date.parse(d) : NaN; return Number.isNaN
 
 export async function run(state, text, source = "input") {
   const isFirst = state.processed.length === 0;
-  const trace = { calls: [], notes: [], kind: isFirst ? "full run" : "update", source, model: modelName(), started: new Date().toISOString() };
+  const trace = {
+    calls: [], notes: [], kind: isFirst ? "full run" : "update", source, model: modelName(), started: new Date().toISOString(),
+    // brief limits: full run cut at 2 min; update at most 5 model calls and 1 min. We stop early with margin.
+    deadline: Date.now() + (isFirst ? 110000 : 52000), maxCalls: isFirst ? 0 : 5,
+  };
+  const snapshot = clone(state);
+  try {
+    await runInner(state, text, trace);
+  } catch (e) {
+    // never leave a half-applied state: restore, keep the previous valid plan, explain in the trace
+    for (const k of Object.keys(state)) delete state[k];
+    Object.assign(state, snapshot);
+    trace.kind += " (failed)";
+    trace.notes.push({ kind: "error", text: `Run stopped: ${e.message}. Previous plan kept.` });
+  }
+  return finish(state, trace);
+}
+
+async function runInner(state, text, trace) {
   const fresh = newPart(state, text);
   if (!fresh) {
     trace.notes.push({ kind: "info", text: "No new messages in this file. Plan unchanged." });
-    return finish(state, trace);
+    return;
   }
 
   // 1. READING: one model call for all new messages
   const msgs = await readMessages(trace, fresh);
+  if (!msgs.length) throw new Error("the reader found no messages in the input");
   const offset = state.messages.length;
   msgs.forEach((m, i) => (m.id = offset + i + 1));
   msgs.sort((a, b) => dateRank(a.date) - dateRank(b.date) || a.id - b.id);
@@ -108,7 +127,6 @@ export async function run(state, text, source = "input") {
     state.validation = validation;
   }
   state.processed.push(text.replace(/\r\n/g, "\n").trim());
-  return finish(state, trace);
 }
 
 function decisionsFromCache(cache) {
@@ -130,6 +148,8 @@ function areaContext(state) {
 }
 
 function finish(state, trace) {
+  const areas = [...new Set(trace.calls.map((c) => c.area))];
+  trace.notes.push({ kind: "info", text: `Areas that made model calls: ${areas.length ? areas.join(", ") : "none"}` });
   for (const c of trace.calls) c.n = ++state.callCount;
   const tokens = trace.calls.reduce((s, c) => s + c.tokens.total, 0);
   trace.totalTokens = tokens;
