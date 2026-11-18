@@ -25,6 +25,10 @@ export function traceText(trace, state) {
     for (const n of trace.notes) L.push(`[${n.kind}] ${n.text}`);
   }
   const all = state.runs.reduce((s, r) => s + r.totalTokens, 0);
+  const used = {};
+  for (const r of state.runs) for (const c of r.calls) used[c.model] = (used[c.model] ?? 0) + 1;
+  for (const c of trace.calls) if (!state.runs.some((r) => r.calls.includes(c))) used[c.model] = (used[c.model] ?? 0) + 1;
+  L.push(`Models used in all runs: ${Object.entries(used).map(([m, n]) => `${m} (${n} call${n > 1 ? "s" : ""})`).join(", ") || "none"}`);
   L.push(`=== Model calls this run: ${trace.calls.length} | Total tokens this run: ${trace.totalTokens} | Total tokens all runs: ${all} ===`);
   return L.join("\n");
 }

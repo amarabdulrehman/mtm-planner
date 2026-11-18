@@ -11,7 +11,7 @@ function candidates() {
   const env = process.env;
   const keys = [env.GEMINI_API_KEY, env.GEMINI_API_KEY_BACKUP, ...[2, 3, 4, 5, 6, 7, 8, 9].map((i) => env[`GEMINI_API_KEY_${i}`])]
     .filter(Boolean);
-  const models = [env.GEMINI_MODEL || "gemini-3.5-flash-lite", ...(env.GEMINI_FALLBACK_MODELS || "gemini-3.1-flash-lite,gemini-3.5-flash").split(",")]
+  const models = [env.GEMINI_MODEL || "gemini-3.5-flash-lite", ...(env.GEMINI_FALLBACK_MODELS || "gemini-3.1-flash-lite").split(",")] // small models only (bonus)
     .map((s) => s.trim()).filter((m, i, a) => m && a.indexOf(m) === i);
   const list = [];
   // first every key on the main model, then the fallback models

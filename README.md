@@ -39,6 +39,8 @@ message text ──► READING (1 model call) ──► FACT STORE (code) ──
 
 **Safeguards tested against an independent test suite:** numbers that are negative, not numbers, or money below Rs 50 with no clear unit ("printing is now 6") are not applied; increases ("eight additional staff") add to the current figure; two equally authoritative messages with the same date and different figures are disclosed as a conflict; teams that do not divide evenly are disclosed; a judging window that is too short reports exactly how many teams can be covered; judges are assigned team by team with clock times; dietary splits (e.g. 13 of 112 vegetarian) appear in the food plan; instructions inside messages are treated as data; roles are normalised in code; the model's JSON is extracted even with extra text around it; empty files and duplicate files make no model calls.
 
+**Small-model bonus:** every call uses `gemini-3.5-flash-lite`; if it fails, the fallbacks are the same model on a second key, then `gemini-3.1-flash-lite`, both small "lite" models. A last-resort OpenAI-compatible provider (e.g. Groq) is used only if configured in `.env`. The trace ends with "Models used in all runs", so a judge can check every call's model.
+
 **Planning defaults** (our choices, shown as assumptions in the plan): opening 15 min, lunch 30 min, closing 15 min, 1 judge per team unless a message says otherwise. Requests that nobody approved (e.g. a DJ) are listed but not included.
 
 No pack facts or messages are written in the code.
