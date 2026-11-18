@@ -310,7 +310,17 @@ async function send(fresh = false) {
     }
     const failed = j.notes.find((x) => x.startsWith("[error] Run stopped"));
     if (failed) throw new Error(failed.replace("[error] Run stopped: ", "").replace(" set GEMINI_API_KEY in .env.", " a model key has not been added yet."));
-    st.innerHTML = `<span class="${j.valid ? "ok" : "bad"}">${j.valid ? "✓ Done — your plan is updated and still valid" : "Plan kept, but it is not valid — see checks"}</span> <span class="mute">· ${j.calls} model call${j.calls === 1 ? "" : "s"} · ${j.tokens} tokens · ${(j.ms / 1000).toFixed(1)} s</span>` +
+    last = ""; await tick(); // load the new plan first so the headline is computed from it
+    // headline = the decision on the message, not just "request finished"
+    const rej = j.notes.filter((x) => x.startsWith("[rejected]")).map((x) => x.replace(/^\[rejected\]\s*/, ""));
+    const ch = (window.__s && window.__s.prevPlan) ? diffPlan(window.__s.prevPlan, window.__s.plan).out : [];
+    const changed = ch.length > 0;
+    const head = fresh ? `<b class="ok">✓ New plan made</b> from ${window.__s?.messages?.length ?? 0} messages${rej.length ? `; ${rej.length} rejected (see Messages)` : ""}.`
+      : rej.length && !changed ? `<b class="bad">✕ Message rejected.</b> ${esc(rej[0])} The accepted plan is unchanged.`
+      : rej.length ? `<b class="warn">Partly used.</b> ${esc(ch[0].text)}. Rejected: ${esc(rej[0])}`
+      : changed ? `<b class="ok">✓ Plan updated.</b> ${esc(ch[0].text)}${ch.length > 1 ? ` (+${ch.length - 1} more change${ch.length > 2 ? "s" : ""} below)` : ""}`
+      : `<b class="mute">No change.</b> The message did not change the plan.`;
+    st.innerHTML = `<span>${head}</span> <span class="${j.valid ? "ok" : "bad"}">${j.valid ? "Plan is valid" : "Plan is not valid — see checks"}</span> <span class="mute">· ${j.calls} model call${j.calls === 1 ? "" : "s"} · ${j.tokens} tokens · ${(j.ms / 1000).toFixed(1)} s</span>` +
       j.notes.map((n) => `<div class="${n.startsWith("[rejected]") ? "bad" : "warn"}">${esc(n)}</div>`).join("");
     $("c-text").value = ""; tab = "plan"; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === "plan")); last = ""; await tick();
     window.scrollTo({ top: $("app").offsetTop - 70, behavior: "smooth" });
