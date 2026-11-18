@@ -18,7 +18,7 @@ schedule.break (item = name, v = minutes; ONLY for a break with no clock time)
 schedule.fixed (item = name, v = {"start":"HH:MM","end":"HH:MM"} or {"start":"HH:MM","minutes":n}; anything tied to a stated clock time, 24h: a prayer break "11:00 to 11:15", a period when the hall must be empty or nothing may happen, judging 2:30-4:30 pm -> 14:30-16:30)
 venue.option (item = venue name, v = {"capacity":n,"price":n (total) or "price_per_hour":n,"features":["generator",...]})
 food.option (item = option name, v = {"price_per_head":n,"default":true if it is the standard/regular/usual option else false})
-food.fixed_cost (item = name, v = amount; e.g. delivery fee; 0 if stated free)
+food.fixed_cost (item = name, v = amount; e.g. delivery fee; 0 if stated free; a percentage charge on the food bill as a string like "10%")
 food.quantity (v = number of meals/boxes the sender says will be served)
 judging.available (v = judges confirmed), judging.fee (v = per judge), judging.minutes_per_team, judging.max_teams_per_judge, judging.judges_per_team
 budget.committed (item = what, v = amount already spent/ordered from this budget)

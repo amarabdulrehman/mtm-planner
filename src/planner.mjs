@@ -89,7 +89,9 @@ export function buildPlan(store, decisions = {}) {
   sources.budget = src(get(store, "budget.total"));
 
   // ---- food options
-  const foodFixed = get(store, "food.fixed_cost").map((e) => ({ item: e.item, amount: Number(e.v) || 0, source: src(e) }));
+  const pctOf = (v) => { const m = /^\s*(\d+(?:\.\d+)?)\s*%\s*$/.exec(String(v ?? "")); return m ? Number(m[1]) : null; };
+  // a fixed food cost is a flat amount, or a percentage of the food bill (e.g. a service charge)
+  const foodFixed = get(store, "food.fixed_cost").map((e) => ({ item: e.item, amount: pctOf(e.v) == null ? Number(e.v) || 0 : 0, percent: pctOf(e.v), source: src(e) }));
   const foodExtraPerHead = Number(d.food.extra_per_head) || 0;
   const excludedFood = new Set((d.food.exclude ?? []).map((s) => String(s).toLowerCase()));
   const foods = get(store, "food.option")
@@ -120,10 +122,12 @@ export function buildPlan(store, decisions = {}) {
   // ---- choose the cheapest venue that fits, with the preferred food that keeps us in budget
   const fixedSpend = committed.reduce((s, c) => s + c.amount, 0) + addedCosts.reduce((s, c) => s + c.amount, 0) + (judging.feeTotal ?? 0) + reserve;
   const foodFixedSum = foodFixed.reduce((s, c) => s + c.amount, 0);
+  const foodPct = foodFixed.reduce((s, c) => s + (c.percent ?? 0), 0);
+  const withPct = (base) => base + Math.round((base * foodPct) / 100);
   let choice = null;
   for (const food of foodPref) {
     for (const v of feasibleVenues) {
-      const foodCost = quantity * (food.pricePerHead + foodExtraPerHead) + foodFixedSum;
+      const foodCost = withPct(quantity * (food.pricePerHead + foodExtraPerHead)) + foodFixedSum;
       const total = fixedSpend + v.price + foodCost;
       if (budgetTotal == null || total <= budgetTotal) { choice = { venue: v, food, foodCost, total }; break; }
     }
@@ -133,7 +137,7 @@ export function buildPlan(store, decisions = {}) {
     // nothing fits the budget: show the cheapest combination so the validator can explain why
     const food = [...foodPref].sort((a, b) => a.pricePerHead - b.pricePerHead)[0];
     const v = feasibleVenues[0];
-    const foodCost = quantity * (food.pricePerHead + foodExtraPerHead) + foodFixedSum;
+    const foodCost = withPct(quantity * (food.pricePerHead + foodExtraPerHead)) + foodFixedSum;
     choice = { venue: v, food, foodCost, total: fixedSpend + v.price + foodCost, overBudget: true };
   }
   if (choice && foods.length > 1 && !choice.food.isDefault) assumptions.push(`Chose ${choice.food.name} food because the standard option does not fit the budget.`);
@@ -182,7 +186,10 @@ export function buildPlan(store, decisions = {}) {
   if (choice) {
     lines.push({ item: `Venue: ${choice.venue.name}`, amount: choice.venue.price, source: choice.venue.source });
     lines.push({ item: `Food: ${quantity} x ${choice.food.name} @ Rs ${choice.food.pricePerHead + foodExtraPerHead}`, amount: quantity * (choice.food.pricePerHead + foodExtraPerHead), source: choice.food.source });
-    for (const f of foodFixed) lines.push({ item: `Food: ${f.item}`, amount: f.amount, source: f.source });
+    for (const f of foodFixed) {
+      if (f.percent != null) f.amount = Math.round((quantity * (choice.food.pricePerHead + foodExtraPerHead) * f.percent) / 100);
+      lines.push({ item: `Food: ${f.item}${f.percent != null ? ` (${f.percent}% of food)` : ""}`, amount: f.amount, source: f.source });
+    }
   }
   if (judging.feeTotal != null) lines.push({ item: `Judges: ${judgesOnSite} x Rs ${fee}`, amount: judging.feeTotal, source: "computed" });
   for (const c of committed) lines.push({ item: `Already ordered: ${c.item}`, amount: c.amount, source: c.source });

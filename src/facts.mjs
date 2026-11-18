@@ -79,6 +79,8 @@ function badNumber(f) {
   if (f.k === "food.option") nums.push(["price per head", f.v?.price_per_head]);
   for (const [label, raw] of nums) {
     if (raw == null) continue;
+    // a percentage fee (e.g. "10%" service charge) is allowed for food costs; it is applied to the food bill
+    if (f.k === "food.fixed_cost" && /^\s*\d+(\.\d+)?\s*%\s*$/.test(String(raw))) { const p = parseFloat(raw); if (p > 100) return `percentage ${p}% is not believable`; continue; }
     const n = Number(raw);
     if (!Number.isFinite(n)) return `${label} "${raw}" is not a number`;
     if (n < 0) return `${label} ${n} is negative`;
