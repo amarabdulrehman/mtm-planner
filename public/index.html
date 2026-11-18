@@ -3,294 +3,203 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MTM Planner · Plan a hackathon from your messages</title>
-<meta name="description" content="Reads the organiser's emails, WhatsApp texts and notices, in English or Roman Urdu, and produces a checked schedule, venue, food, judging plan and budget, with the reason behind every decision." />
-<meta name="theme-color" content="#08090D" />
-<meta property="og:title" content="MTM Planner · Plan a hackathon from your messages" />
-<meta property="og:description" content="One model call reads the messages. Code does every calculation and check. Every figure points back to the message it came from." />
+<title>MTM Planner · Plan a hackathon from the organiser's messages</title>
+<meta name="description" content="Reads the organiser's emails, WhatsApp texts and notices, in English or Roman Urdu, and produces a checked schedule, venue, food order, judging plan and budget, with the source of every figure." />
+<meta name="theme-color" content="#F6F6F4" />
+<meta property="og:title" content="MTM Planner" />
+<meta property="og:description" content="Plan a hackathon from the organiser's messages. Every figure is traced to the message it came from." />
 <meta property="og:image" content="/assets/app-preview.jpg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236E7BFF'/><stop offset='1' stop-color='%2322D3EE'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M8 22V10l8 7 8-7v12' fill='none' stroke='white' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'/></svg>" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2318181B'/><path d='M8 22V10l8 7 8-7v12' fill='none' stroke='white' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'/></svg>" />
 <style>
-  :root { --bg:#08090D; --bg2:#0C0E14; --panel:#10121A; --panel2:#151824; --raise:#1A1E2C; --line:rgba(255,255,255,.075); --line2:rgba(255,255,255,.13);
-    --ink:#ECEEF4; --ink2:#C3C7D4; --muted:#8A90A2; --faint:#5C6274; --acc:#7C86FF; --acc2:#22D3EE; --grad:linear-gradient(135deg,#6E7BFF 0%,#8B5CF6 50%,#22D3EE 100%);
-    --ok:#34D399; --ok-soft:rgba(52,211,153,.12); --bad:#F87171; --bad-soft:rgba(248,113,113,.12); --warn:#FBBF24; color-scheme:dark; }
+  :root { --bg:#F6F6F4; --bg2:#F1F1EE; --panel:#FFFFFF; --line:#E4E3DE; --line2:#D3D2CC; --ink:#18181B; --ink2:#3F3F46; --muted:#6B6B73; --faint:#A1A1A8;
+    --acc:#1F4FBF; --ok:#18794E; --bad:#B42318; --warn:#9A6200; color-scheme:light; }
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
   a { color:inherit; text-decoration:none; }
-  :focus-visible { outline:2px solid var(--acc); outline-offset:3px; border-radius:6px; }
-  .wrap { max-width:1180px; margin:0 auto; padding:0 28px; }
-  .mono { font-family:"JetBrains Mono", ui-monospace, Menlo, monospace; }
-  .num { font-variant-numeric:tabular-nums; }
-  .ic { width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  .g { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  :focus-visible { outline:2px solid var(--acc); outline-offset:3px; border-radius:4px; }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 28px; }
+  .ic { width:16px; height:16px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
-  /* nav */
-  header.top { position:sticky; top:0; z-index:20; background:rgba(8,9,13,.7); backdrop-filter:saturate(1.6) blur(14px); -webkit-backdrop-filter:saturate(1.6) blur(14px); border-bottom:1px solid var(--line); }
-  header.top .wrap { display:flex; align-items:center; gap:28px; height:64px; }
-  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; letter-spacing:-.01em; }
-  .logo { width:28px; height:28px; border-radius:8px; background:var(--grad); display:grid; place-items:center; box-shadow:0 4px 16px -4px rgba(110,123,255,.6); }
-  .logo svg { width:16px; height:16px; stroke:#fff; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
-  header.top nav { display:flex; gap:24px; font-size:14px; color:var(--muted); }
+  header.top { position:sticky; top:0; z-index:20; background:rgba(246,246,244,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
+  header.top .wrap { display:flex; align-items:center; gap:28px; height:60px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:650; font-size:15px; }
+  .logo { width:26px; height:26px; border-radius:6px; background:var(--ink); display:grid; place-items:center; }
+  .logo svg { width:15px; height:15px; stroke:#fff; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+  header.top nav { display:flex; gap:22px; font-size:14px; color:var(--muted); }
   header.top nav a:hover { color:var(--ink); }
   .grow { flex:1; }
-  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border-radius:11px; font-weight:600; font-size:15px; border:1px solid var(--line2); background:var(--panel); color:var(--ink); transition:transform .15s, border-color .15s, background .15s, filter .15s; white-space:nowrap; }
-  .btn:hover { border-color:var(--faint); background:var(--panel2); }
-  .btn:active { transform:translateY(1px); }
-  .btn.primary { background:var(--grad); border-color:transparent; color:#fff; box-shadow:0 10px 30px -10px rgba(110,123,255,.8), 0 1px 0 rgba(255,255,255,.25) inset; }
-  .btn.primary:hover { filter:brightness(1.08); }
-  .btn.sm { padding:8px 14px; font-size:13.5px; border-radius:9px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 18px; border-radius:8px; font-weight:550; font-size:15px; border:1px solid var(--line2); background:var(--panel); color:var(--ink); white-space:nowrap; }
+  .btn:hover { border-color:var(--faint); }
+  .btn.primary { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .btn.primary:hover { background:#000; }
+  .btn.sm { padding:7px 13px; font-size:13.5px; }
 
-  /* hero */
-  .hero { position:relative; padding:96px 0 40px; text-align:center; isolation:isolate; }
-  .hero::before { content:""; position:absolute; inset:-64px 0 0; z-index:-2; background:
-      radial-gradient(800px 420px at 50% -10%, rgba(110,123,255,.28), transparent 65%),
-      radial-gradient(600px 300px at 85% 10%, rgba(34,211,238,.14), transparent 60%),
-      radial-gradient(500px 300px at 10% 20%, rgba(139,92,246,.14), transparent 60%); }
-  .hero::after { content:""; position:absolute; inset:-64px 0 0; z-index:-1; opacity:.5;
-      background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size:56px 56px;
-      -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); mask-image:radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); }
-  .badge { display:inline-flex; align-items:center; gap:10px; font-size:13px; color:var(--ink2); border:1px solid var(--line2); background:rgba(16,18,26,.7); padding:6px 14px 6px 6px; border-radius:999px; }
-  .badge b { white-space:nowrap; font-size:11.5px; font-weight:700; color:#fff; background:var(--grad); border-radius:999px; padding:3px 9px; letter-spacing:.02em; }
-  .hero h1 { font-size:clamp(40px,7.2vw,84px); line-height:1.0; letter-spacing:-.045em; margin:26px auto 22px; max-width:980px; font-weight:800; }
-  .hero p.lede { font-size:clamp(17px,2vw,20px); color:var(--muted); max-width:700px; margin:0 auto 34px; line-height:1.55; }
-  .hero p.lede b { color:var(--ink2); font-weight:600; }
-  .actions { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
-  .hint { font-size:13.5px; color:var(--faint); margin-top:16px; }
+  .hero { padding:80px 0 0; }
+  .eyebrow { font-size:13.5px; color:var(--muted); margin:0 0 18px; }
+  .eyebrow b { color:var(--ink2); font-weight:600; }
+  .hero h1 { font-size:clamp(34px,5vw,56px); line-height:1.08; letter-spacing:-.03em; margin:0 0 20px; max-width:820px; font-weight:700; }
+  .hero p.lede { font-size:clamp(17px,1.8vw,19px); color:var(--ink2); max-width:660px; margin:0 0 30px; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .hint { font-size:13.5px; color:var(--muted); margin-top:14px; }
 
-  .shot { position:relative; margin:64px auto 0; max-width:1120px; perspective:2000px; }
-  .shot::before { content:""; position:absolute; inset:8% 6% -4%; background:var(--grad); filter:blur(80px); opacity:.35; z-index:-1; border-radius:40px; }
-  .frame { border-radius:16px; border:1px solid var(--line2); background:var(--panel); overflow:hidden; box-shadow:0 40px 120px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.03) inset; transform:rotateX(14deg) scale(.96); transform-origin:50% 0; transition:transform 1.2s cubic-bezier(.2,.7,.2,1); }
-  .frame.in { transform:none; }
-  .chrome { display:flex; align-items:center; gap:8px; height:40px; padding:0 14px; border-bottom:1px solid var(--line); background:var(--bg2); }
-  .chrome i { width:11px; height:11px; border-radius:50%; background:#2A2E3C; }
-  .chrome .url { margin:0 auto; font:12px "JetBrains Mono", monospace; color:var(--muted); background:var(--panel); border:1px solid var(--line); border-radius:7px; padding:4px 14px; display:flex; gap:6px; align-items:center; }
-  .chrome .url .ic { width:12px; height:12px; color:var(--ok); }
-  .frame img { display:block; width:100%; height:auto; }
-  .fade { position:absolute; left:0; right:0; bottom:-1px; height:30%; background:linear-gradient(transparent, var(--bg)); pointer-events:none; }
+  .shot { margin:56px 0 0; border:1px solid var(--line2); border-radius:10px; overflow:hidden; background:var(--panel); box-shadow:0 1px 2px rgba(0,0,0,.04), 0 12px 32px -16px rgba(0,0,0,.16); }
+  .chrome { display:flex; align-items:center; gap:7px; height:34px; padding:0 12px; border-bottom:1px solid var(--line); background:var(--bg2); }
+  .chrome i { width:10px; height:10px; border-radius:50%; background:var(--line2); }
+  .chrome .url { margin:0 auto; font:12px "JetBrains Mono", monospace; color:var(--muted); }
+  .shot img { display:block; width:100%; height:auto; }
+  .cap { font-size:13px; color:var(--muted); margin:10px 0 0; }
 
-  /* stats */
-  .stats { display:grid; grid-template-columns:repeat(5,1fr); border:1px solid var(--line); border-radius:18px; background:rgba(16,18,26,.6); margin-top:56px; overflow:hidden; }
-  .stats div { padding:22px 20px; border-left:1px solid var(--line); text-align:center; }
-  .stats div:first-child { border-left:0; }
-  .stats b { display:block; font-size:30px; font-weight:750; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
-  .stats span { font-size:13px; color:var(--muted); }
+  .figs { display:grid; grid-template-columns:repeat(5,1fr); border:1px solid var(--line); border-radius:10px; background:var(--panel); margin-top:40px; }
+  .figs div { padding:18px 20px; border-left:1px solid var(--line); }
+  .figs div:first-child { border-left:0; }
+  .figs b { display:block; font-size:24px; font-weight:650; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .figs span { font-size:13px; color:var(--muted); }
 
-  section { padding:110px 0; position:relative; }
-  .kicker { display:inline-flex; align-items:center; gap:8px; font:500 12.5px "JetBrains Mono", monospace; color:var(--acc); text-transform:uppercase; letter-spacing:.08em; margin:0 0 14px; }
-  h2 { font-size:clamp(30px,4.4vw,52px); letter-spacing:-.035em; line-height:1.05; margin:0 0 18px; font-weight:780; max-width:820px; }
-  .intro { color:var(--muted); max-width:640px; margin:0 0 52px; font-size:17px; }
-  .center { text-align:center; } .center h2, .center .intro { margin-left:auto; margin-right:auto; }
+  section { padding:96px 0 0; }
+  .label { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin:0 0 12px; }
+  h2 { font-size:clamp(26px,3.4vw,38px); letter-spacing:-.025em; line-height:1.15; margin:0 0 14px; font-weight:700; max-width:760px; }
+  .intro { color:var(--ink2); max-width:640px; margin:0 0 40px; font-size:17px; }
 
-  /* pipeline */
-  .pipe { display:grid; grid-template-columns:1.15fr 70px .8fr 70px 1fr; align-items:stretch; }
-  .col { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:18px; min-width:0; }
-  .col h3 { display:flex; align-items:center; gap:10px; font-size:14px; margin:0 0 14px; color:var(--ink2); font-weight:600; }
-  .col h3 .n { width:24px; height:24px; border-radius:7px; display:grid; place-items:center; background:var(--raise); border:1px solid var(--line2); font:600 12px "JetBrains Mono", monospace; color:var(--ink); }
-  .bub { padding:10px 12px; border-radius:4px 12px 12px 12px; background:var(--bg2); border:1px solid var(--line); font-size:13px; color:var(--ink2); margin-bottom:9px; opacity:0; transform:translateY(8px); transition:opacity .5s, transform .5s; }
-  .bub.wa { background:rgba(37,211,102,.07); border-color:rgba(37,211,102,.2); }
-  .bub .who { display:flex; gap:8px; align-items:center; font-size:11.5px; color:var(--muted); margin-bottom:3px; font-weight:500; }
-  .bub .who .ic { width:12px; height:12px; }
-  .bub.on { opacity:1; transform:none; }
-  .arrow { display:grid; place-items:center; color:var(--faint); position:relative; }
-  .arrow::before { content:""; position:absolute; left:10px; right:10px; top:50%; height:2px; background:linear-gradient(90deg, transparent, var(--line2), transparent); }
-  .arrow span { position:relative; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; background:var(--bg); border:1px solid var(--line2); }
-  .arrow span::after { content:""; position:absolute; inset:-1px; border-radius:50%; border:1px solid var(--acc); opacity:0; animation:ping 2.4s ease-out infinite; }
-  @keyframes ping { 0% { transform:scale(.8); opacity:.8; } 100% { transform:scale(1.7); opacity:0; } }
-  .fact { display:flex; align-items:center; gap:8px; font:12px "JetBrains Mono", monospace; color:var(--ink2); padding:8px 10px; border-radius:9px; background:var(--bg2); border:1px solid var(--line); margin-bottom:7px; opacity:0; transform:translateX(-6px); transition:opacity .4s, transform .4s; }
-  .fact.on { opacity:1; transform:none; }
+  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .step { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px; min-width:0; display:flex; flex-direction:column; }
+  .step .n { font:500 12px "JetBrains Mono", monospace; color:var(--muted); }
+  .step h3 { margin:6px 0 4px; font-size:17px; letter-spacing:-.01em; }
+  .step p { margin:0 0 16px; color:var(--muted); font-size:14.5px; }
+  .msg { border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:13px; color:var(--ink2); margin-bottom:8px; background:var(--bg); }
+  .msg .who { display:flex; gap:6px; align-items:center; font-size:11.5px; color:var(--muted); margin-bottom:2px; font-weight:500; }
+  .msg .who .ic { width:12px; height:12px; }
+  .fact { display:flex; gap:8px; font:12px "JetBrains Mono", monospace; color:var(--ink2); padding:7px 0; border-top:1px solid var(--line); }
+  .fact:first-child { border-top:0; }
   .fact .k { color:var(--acc); } .fact .s { margin-left:auto; color:var(--faint); }
-  .fact.x { border-color:rgba(251,191,36,.25); } .fact.x .k { color:var(--warn); }
-  .meter { margin-top:12px; font:11.5px "JetBrains Mono", monospace; color:var(--muted); display:flex; justify-content:space-between; border-top:1px solid var(--line); padding-top:10px; }
-  .pl { display:grid; gap:8px; }
-  .pl .row { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:10px; background:var(--bg2); border:1px solid var(--line); font-size:13.5px; opacity:0; transition:opacity .4s; }
-  .pl .row.on { opacity:1; }
-  .pl .row .ok { width:20px; height:20px; border-radius:50%; display:grid; place-items:center; background:var(--ok-soft); color:var(--ok); flex:none; }
-  .pl .row .ok .ic { width:12px; height:12px; stroke-width:3; }
-  .pl .row b { margin-left:auto; font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
-  .pl .row span.t { color:var(--muted); }
+  .fact.x .k { color:var(--warn); }
+  .row { display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line); font-size:14px; }
+  .row:first-child { border-top:0; }
+  .row .ok { color:var(--ok); display:flex; } .row .ok .ic { width:14px; height:14px; stroke-width:2.6; }
+  .row span.t { color:var(--muted); } .row b { margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .foot { margin-top:auto; padding-top:12px; border-top:1px solid var(--line); font:12px "JetBrains Mono", monospace; color:var(--muted); display:flex; justify-content:space-between; }
 
-  /* bento */
-  .bento { display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
-  .tile { position:relative; background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:26px; overflow:hidden; min-width:0; }
-  .tile::before { content:""; position:absolute; inset:0; background:radial-gradient(400px 180px at 0% 0%, rgba(110,123,255,.10), transparent 70%); pointer-events:none; }
-  .tile h3 { margin:14px 0 6px; font-size:18px; letter-spacing:-.015em; }
-  .tile p { margin:0; color:var(--muted); font-size:14.5px; }
-  .tile .ib { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--raise); border:1px solid var(--line2); color:var(--ink); }
-  .t3 { grid-column:span 3; } .t2 { grid-column:span 2; } .t4 { grid-column:span 4; }
-  code { font:13px "JetBrains Mono", monospace; color:var(--ink2); background:var(--raise); border:1px solid var(--line); padding:2px 6px; border-radius:6px; }
-  .demo { margin-top:18px; border-radius:14px; padding:1px; background:linear-gradient(135deg, rgba(248,113,113,.55), var(--line) 50%); }
-  .demo > div { background:var(--bg2); border-radius:13px; padding:14px 16px; display:grid; grid-template-columns:auto 1fr; gap:2px 12px; }
-  .demo .di { grid-row:span 3; width:34px; height:34px; border-radius:10px; display:grid; place-items:center; background:var(--bad-soft); color:var(--bad); }
-  .demo .l { font:600 10.5px Inter; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
-  .demo b { font-size:15.5px; color:var(--bad); } .demo p { font-size:13.5px; color:var(--ink2); }
-  .term { margin-top:18px; border-radius:12px; background:#05060A; border:1px solid var(--line); padding:14px 16px; font:12.5px/1.75 "JetBrains Mono", monospace; color:var(--ink2); overflow:hidden; }
-  .term .p { color:var(--ok); } .term .c { color:var(--faint); } .term .a { color:var(--acc); }
-  .calls { margin-top:18px; display:grid; gap:7px; }
-  .calls div { display:grid; grid-template-columns:24px 70px 1fr 64px; gap:10px; align-items:center; font:12px "JetBrains Mono", monospace; color:var(--ink2); }
-  .calls i { display:block; height:6px; border-radius:3px; background:var(--grad); }
-  .calls .n { color:var(--faint); } .calls .r { text-align:right; color:var(--muted); }
-  .wa-d { margin-top:18px; padding:12px 14px; border-radius:4px 14px 14px 14px; background:rgba(37,211,102,.08); border:1px solid rgba(37,211,102,.22); font-size:13.5px; color:var(--ink2); }
-  .wa-d .who { font-size:11.5px; color:var(--muted); margin-bottom:4px; }
+  .feats { display:grid; grid-template-columns:repeat(2,1fr); gap:0 56px; }
+  .feat { padding:26px 0; border-top:1px solid var(--line); }
+  .feat h3 { margin:0 0 6px; font-size:17px; letter-spacing:-.01em; }
+  .feat p { margin:0; color:var(--muted); font-size:15px; }
+  .ex { margin-top:14px; border:1px solid var(--line); border-left:3px solid var(--line2); border-radius:6px; background:var(--panel); padding:11px 14px; font-size:13.5px; color:var(--ink2); }
+  .ex.bad { border-left-color:var(--bad); }
+  .ex .l { font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  .ex b { display:block; color:var(--bad); font-size:14.5px; margin:1px 0 2px; }
+  .ex.mono { font:12.5px/1.75 "JetBrains Mono", monospace; }
+  .ex .c { color:var(--faint); }
+  code { font:13px "JetBrains Mono", monospace; background:var(--bg2); border:1px solid var(--line); padding:1px 5px; border-radius:4px; color:var(--ink2); }
 
-  /* cta */
-  .cta { margin:0 auto; border-radius:28px; padding:72px 28px; text-align:center; position:relative; overflow:hidden; border:1px solid var(--line2); background:radial-gradient(600px 260px at 50% 0%, rgba(110,123,255,.3), transparent 70%), var(--panel); }
-  .cta h2 { margin:0 auto 14px; }
-  .cta p { color:var(--muted); margin:0 auto 30px; max-width:560px; font-size:17px; }
-  footer { padding:44px 0 60px; font-size:14px; color:var(--faint); }
-  footer .wrap { display:flex; gap:22px; flex-wrap:wrap; align-items:center; }
+  .end { margin-top:96px; padding:48px 0; border-top:1px solid var(--line); display:flex; gap:24px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .end h2 { margin:0; font-size:clamp(22px,2.6vw,28px); }
+  .end p { margin:4px 0 0; color:var(--muted); }
+  footer { border-top:1px solid var(--line); padding:28px 0 44px; font-size:13.5px; color:var(--muted); }
+  footer .wrap { display:flex; gap:20px; flex-wrap:wrap; align-items:center; }
   footer a:hover { color:var(--ink); }
 
-  .rv { opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
-  .rv.in { opacity:1; transform:none; }
-  @media (prefers-reduced-motion: reduce) { .rv, .bub, .fact, .pl .row { opacity:1 !important; transform:none !important; transition:none !important; } .frame { transform:none !important; } .arrow span::after { animation:none; } }
-
-  @media (max-width:980px) {
-    .pipe { grid-template-columns:1fr; gap:0; } .arrow { height:56px; } .arrow::before { left:50%; right:auto; top:8px; bottom:8px; width:2px; height:auto; background:linear-gradient(transparent, var(--line2), transparent); } .arrow span { transform:rotate(90deg); }
-    .bento { grid-template-columns:1fr 1fr; } .t3, .t2, .t4 { grid-column:span 2; }
-    .stats { grid-template-columns:repeat(3,1fr); } .stats div:nth-child(4) { border-left:0; } .stats div:nth-child(n+4) { border-top:1px solid var(--line); }
-  }
-  @media (max-width:720px) {
-    header.top nav, .hide-sm { display:none; } .hero { padding:64px 0 24px; } section { padding:76px 0; } .shot { margin-top:44px; } .frame { transform:none; } .chrome { height:30px; } .chrome .url { font-size:10.5px; }
-    .stats { grid-template-columns:1fr 1fr; } .stats div { border-left:0 !important; border-top:1px solid var(--line); } .stats div:first-child { grid-column:span 2; border-top:0; } .stats b { font-size:24px; }
-    .bento { grid-template-columns:1fr; } .t3, .t2, .t4 { grid-column:auto; }
-    .wrap { padding:0 18px; } .cta { padding:52px 20px; border-radius:22px; }
-  }
+  @media (max-width:900px) { .steps { grid-template-columns:1fr; } .feats { grid-template-columns:1fr; } .figs { grid-template-columns:repeat(3,1fr); } .figs div:nth-child(4) { border-left:0; } .figs div:nth-child(n+4) { border-top:1px solid var(--line); } }
+  @media (max-width:640px) { header.top nav, .hide-sm { display:none; } .wrap { padding:0 18px; } .hero { padding-top:52px; } section { padding-top:68px; } .figs { grid-template-columns:1fr 1fr; } .figs div { border-left:0 !important; border-top:1px solid var(--line); } .figs div:first-child { border-top:0; grid-column:span 2; } .figs b { font-size:20px; } .shot { margin-top:40px; } .chrome { height:26px; } .end { margin-top:68px; } }
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="/"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18V7l7 6 7-6v11"/></svg></span>MTM Planner</a>
-  <nav aria-label="Page"><a href="#how">How it works</a><a href="#why">Guarantees</a><a href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener">GitHub</a></nav>
+  <nav aria-label="Page"><a href="#how">How it works</a><a href="#details">Details</a><a href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener">Source</a></nav>
   <span class="grow"></span>
-  <a class="btn sm hide-sm" href="/app?example">Live example</a>
+  <a class="btn sm hide-sm" href="/app?example">View example</a>
   <a class="btn sm primary" href="/app?new">Open planner</a>
 </div></header>
 
-<main>
-  <div class="hero"><div class="wrap">
-    <span class="badge"><b>MTM 2.0</b><span><span class="hide-sm">Built at </span>Mind-to-Machine · GDGoC CUI Wah</span></span>
-    <h1>Your inbox is the brief.<br><span class="g">The plan writes itself.</span></h1>
-    <p class="lede">Drop in the organiser's emails, WhatsApp texts and notices, in <b>English or Roman Urdu</b>. Get a checked schedule, venue, food order, judging rota and budget, with every figure traced to the message it came from.</p>
+<main class="wrap">
+  <div class="hero">
+    <p class="eyebrow"><b>Mind-to-Machine 2.0</b> · GDGoC CUI Wah · November 2026</p>
+    <h1>Plan a hackathon from the organiser's messages.</h1>
+    <p class="lede">Paste the emails, WhatsApp texts and notices, in English or Roman Urdu. The planner produces the schedule, venue, food order, judging rota and budget, checks them, and shows which message each figure came from.</p>
     <div class="actions">
-      <a class="btn primary" href="/app?example">See a real plan <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a class="btn primary" href="/app?example">View a real plan</a>
       <a class="btn" href="/app?new">Start with your messages</a>
     </div>
-    <p class="hint">No sign-up. The example is a real, saved run you can add messages to.</p>
+    <p class="hint">The example is a saved run on the judges' test pack. You can add messages to it.</p>
 
-    <div class="shot rv-shot">
-      <div class="frame" id="frame">
-        <div class="chrome"><i></i><i></i><i></i><span class="url"><svg class="ic" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>mtm-planner.vercel.app/app</span></div>
-        <img src="/assets/app-preview.jpg" width="1800" height="1250" alt="The planner showing a valid plan for 120 students in 30 teams: KPI gauges, a colour-coded schedule and seven passing checks." />
-      </div>
-      <div class="fade"></div>
-    </div>
+    <figure class="shot" style="margin-left:0;margin-right:0">
+      <div class="chrome"><i></i><i></i><i></i><span class="url">mtm-planner.vercel.app/app</span></div>
+      <img src="/assets/app-preview.jpg" width="1800" height="1250" alt="The planner showing a valid plan for 120 students in 30 teams: summary figures, the schedule and seven passing checks." />
+    </figure>
+    <p class="cap">The plan view for the saved example.</p>
 
-    <div class="stats rv" id="stats">
+    <div class="figs" aria-label="Figures from the saved run">
       <div><b data-k="msgs">10</b><span>messages read</span></div>
       <div><b data-k="calls">2</b><span>model calls</span></div>
-      <div><b data-k="tokens">2,915</b><span>tokens, whole plan</span></div>
-      <div><b data-k="checks" class="g">7 / 7</b><span>checks pass</span></div>
+      <div><b data-k="tokens">2,915</b><span>tokens in total</span></div>
+      <div><b data-k="checks">7 of 7</b><span>checks pass</span></div>
       <div><b data-k="left">Rs 55,840</b><span>left in budget</span></div>
     </div>
-  </div></div>
+  </div>
 
-  <section id="how"><div class="wrap">
-    <p class="kicker rv">// How it works</p>
-    <h2 class="rv">A model reads. <span class="g">Code decides.</span></h2>
-    <p class="intro rv">Only the reading is done by AI. Every sum, rule and check is plain code, so the numbers are exact and the plan can't hallucinate a hall that doesn't exist.</p>
-    <div class="pipe rv" id="pipe">
-      <div class="col"><h3><span class="n">1</span>The messages, as sent</h3><div id="bubs"></div></div>
-      <div class="arrow" aria-hidden="true"><span><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div>
-      <div class="col"><h3><span class="n">2</span>Facts, with authority</h3><div id="facts"></div><div class="meter"><span id="m-calls">1 model call</span><span id="m-tok">–</span></div></div>
-      <div class="arrow" aria-hidden="true"><span><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div>
-      <div class="col"><h3><span class="n">3</span>The plan, checked</h3><div class="pl" id="plan"></div></div>
+  <section id="how">
+    <p class="label">How it works</p>
+    <h2>The model only reads. Code does the planning.</h2>
+    <p class="intro">One model call turns the messages into facts. Ordinary code then applies the rules, does the arithmetic and runs the checks, so the figures are exact and repeatable.</p>
+    <div class="steps">
+      <div class="step"><span class="n">01</span><h3>Read the messages</h3><p>Each message keeps its sender, channel and date.</p><div id="msgs"></div></div>
+      <div class="step"><span class="n">02</span><h3>Keep the facts that count</h3><p>A fact is used only if its sender is allowed to set it. The newest message wins.</p><div id="facts"></div><div class="foot"><span id="m-calls">2 model calls</span><span id="m-tok">2,915 tokens</span></div></div>
+      <div class="step"><span class="n">03</span><h3>Build and check the plan</h3><p>The same seven checks run after every new message.</p><div id="plan"></div></div>
     </div>
-  </div></section>
+  </section>
 
-  <section id="why" style="padding-top:20px"><div class="wrap">
-    <p class="kicker rv">// Guarantees</p>
-    <h2 class="rv">Stays correct when<br><span class="g">the messages change.</span></h2>
-    <p class="intro rv">Real event planning is a stream of corrections. Prices go up, halls close, someone without authority asks for less food. The planner handles all of it.</p>
-    <div class="bento">
-      <div class="tile t3 rv"><span class="ib"><svg class="ic" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>
-        <h3>Wrong messages are caught</h3><p>A sender without authority, an out-of-date price, or a change that leaves people hungry is rejected with a plain reason. The last good plan stays in place.</p>
-        <div class="demo"><div><span class="di"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg></span><span class="l">Latest decision</span><b>Message rejected</b><p style="margin:2px 0 0">100 meals would leave 36 of 136 people without lunch. Only the organiser can change the meal order.</p></div></div></div>
-      <div class="tile t3 rv"><span class="ib"><svg class="ic" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
-        <h3>Newest message wins</h3><p>Facts carry their sender and date. When the caterer's rate changes, the old one is superseded and every total that used it updates.</p>
-        <div class="term"><span class="c">[superseded]</span> #5 Caterer: biryani box<br><span class="a">Rs 700</span> → <span class="p">Rs 850</span> per head <span class="c">(replaces #4)</span><br><span class="c">[superseded]</span> #9 Hall 3 under maintenance<br><span class="c">[ignored]</span> #10 Library closing early</div></div>
-      <div class="tile t2 rv"><span class="ib"><svg class="ic" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
-        <h3>Every call on the record</h3><p>Model, area, input, output and tokens for every call. Download the plan and the full trace as one file.</p>
-        <div class="calls" id="callbars"><div><span class="n">1</span><span>reading</span><i style="width:100%"></i><span class="r">2,571</span></div><div><span class="n">2</span><span>venue</span><i style="width:14%"></i><span class="r">344</span></div></div></div>
-      <div class="tile t2 rv"><span class="ib"><svg class="ic" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><path d="M12 19h8"/></svg></span>
-        <h3>One command, every time</h3><p>The same command for the first run and every update. A new message uses at most 5 model calls, usually 1.</p>
-        <div class="term"><span class="p">$</span> npm run plan -- messages.txt<br><span class="c">✓ 7/7 checks · 2 calls · 4.4 s</span></div></div>
-      <div class="tile t2 rv"><span class="ib"><svg class="ic" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span>
-        <h3>Replies drafted, never sent</h3><p>Each sender gets a reply on the channel they used. A person always presses send.</p>
-        <div class="wa-d"><div class="who">To Caterer · WhatsApp</div>Please confirm our order: 136 × biryani box at Rs 850 each = Rs 115,600.</div></div>
+  <section id="details">
+    <p class="label">Details</p>
+    <h2>Built for messages that keep changing.</h2>
+    <div class="feats" style="margin-top:32px">
+      <div class="feat"><h3>Wrong messages are rejected with a reason</h3><p>A sender without authority, an out-of-date price, or a change that would leave people without food is rejected. The last accepted plan stays in place.</p>
+        <div class="ex bad"><span class="l">Latest decision</span><b>Message rejected</b>100 meals would leave 36 of 136 people without lunch. Only the organiser can change the meal order.</div></div>
+      <div class="feat"><h3>The newest message wins</h3><p>When a price or an option changes, the older fact is replaced and every total that used it is recalculated.</p>
+        <div class="ex mono"><span class="c">[superseded]</span> #5 Caterer: biryani box Rs 700 → Rs 850 <span class="c">(replaces #4)</span><br><span class="c">[superseded]</span> #9 Hall 3 under maintenance<br><span class="c">[ignored]</span> #10 Library closing early</div></div>
+      <div class="feat"><h3>Every model call is recorded</h3><p>Each call is numbered with its model, area, input, output and token count. The plan and the full trace download as one text file.</p></div>
+      <div class="feat"><h3>Small, predictable updates</h3><p><code>npm run plan -- messages.txt</code> for the first run and for every update. A new message uses at most 5 model calls, usually 1.</p></div>
+      <div class="feat"><h3>No figures written into the code</h3><p>Every number comes from the message file, so a pack it has never seen works without changes.</p></div>
+      <div class="feat"><h3>Replies are drafted, not sent</h3><p>Each sender gets a draft reply on the channel they used, written from the plan. A person always presses send.</p></div>
     </div>
-  </div></section>
+  </section>
 
-  <section style="padding-top:20px"><div class="wrap">
-    <div class="cta rv">
-      <h2>Plan the next one<br><span class="g">from the group chat.</span></h2>
-      <p>Paste your message pack, or open the real example and try sending it a message that should be rejected.</p>
-      <div class="actions"><a class="btn primary" href="/app?new">Open planner</a><a class="btn" href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener"><svg class="ic" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>View source</a></div>
-    </div>
-  </div></section>
+  <div class="end">
+    <div><h2>Try it with the saved example.</h2><p>Send it a message that should be rejected and see what it does.</p></div>
+    <div class="actions"><a class="btn primary" href="/app?example">View example</a><a class="btn" href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener">Source on GitHub</a></div>
+  </div>
 </main>
 
-<footer><div class="wrap"><a class="brand" href="/" style="color:var(--ink2)"><span class="logo" aria-hidden="true" style="width:22px;height:22px;border-radius:6px"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M5 18V7l7 6 7-6v11"/></svg></span>MTM Planner</a><span>Built at Mind-to-Machine 2.0 · GDGoC CUI Wah · November 2026</span><span class="grow"></span><a href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener">GitHub</a><a href="/app?example">Live example</a><a href="/app?new">Open planner</a></div></footer>
+<footer><div class="wrap"><span>MTM Planner · built at Mind-to-Machine 2.0, GDGoC CUI Wah, November 2026</span><span class="grow"></span><a href="https://github.com/amarabdulrehman/mtm-planner" rel="noopener">GitHub</a><a href="/app?example">Example</a><a href="/app?new">Open planner</a></div></footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const rs = (n) => "Rs " + Number(n).toLocaleString("en-US");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const IC = { chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>', mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/>', file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>', check: '<path d="M20 6 9 17l-5-5"/>' };
-const ic = (n) => `<svg class="ic" viewBox="0 0 24 24">${IC[n]}</svg>`;
-
-// reveal on scroll
-const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15 });
-document.querySelectorAll(".rv").forEach((el) => io.observe(el));
-const frame = $("frame"); new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { setTimeout(() => frame.classList.add("in"), 150); o.disconnect(); } }), { threshold: .1 }).observe(frame);
-
-// fallback content (the saved run); replaced with live figures from demo-state.json when it loads
-let msgs = [
+const IC = { chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>', mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/>', check: '<path d="M20 6 9 17l-5-5"/>' };
+const ic = (n) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+const msgs = [
   { s: "Registrar's office", c: "email", t: "Approved: a 4-hour hackathon for 120 students in teams of 4. The budget is Rs 400,000, all in." },
   { s: "Caterer", c: "whatsapp", t: "Rates update: biryani box ab Rs 850 per head hai… 10% service charge alag se lagega on the total." },
   { s: "Faisal Convention Centre", c: "whatsapp", t: "Sorry sir, Hall 3 is under maintenance on your event date and cannot be booked." },
   { s: "Student disability office", c: "email", t: "Two registered participants use wheelchairs. The venue must have step-free access throughout." },
 ];
-let facts = [["event.students", "120", "#1"], ["budget.total", "400000", "#1"], ["food.option", "biryani 850", "#5"], ["food.fixed_cost", "10%", "#5"], ["venue rule", "step-free", "#3"], ["venue.option", "Hall 3 out", "#9", 1]];
-let plan = [["Venue", "Hall 2 · 180 seats"], ["Meals", "136 for 136 people"], ["Judges", "8 of 15"], ["Schedule", "240 / 240 min"], ["Spend", "Rs 344,160 of Rs 400,000"], ["Checks", "7 / 7 pass"]];
-
-function paint() {
-  $("bubs").innerHTML = msgs.map((m) => `<div class="bub ${m.c === "whatsapp" ? "wa" : ""}"><div class="who">${ic(m.c === "whatsapp" ? "chat" : m.c === "email" ? "mail" : "file")}${esc(m.s)}</div>${esc(m.t)}</div>`).join("");
-  $("facts").innerHTML = facts.map(([k, v, s, x]) => `<div class="fact ${x ? "x" : ""}"><span class="k">${esc(k)}</span>${esc(v)}<span class="s">${esc(s)}</span></div>`).join("");
-  $("plan").innerHTML = plan.map(([k, v]) => `<div class="row"><span class="ok">${ic("check")}</span><span class="t">${esc(k)}</span><b>${esc(v)}</b></div>`).join("");
-}
-function play() {
-  const seq = [...document.querySelectorAll("#bubs .bub, #facts .fact, #plan .row")];
-  seq.forEach((el, i) => setTimeout(() => el.classList.add("on"), 250 + i * 170));
-}
-paint();
-const pio = new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { play(); o.disconnect(); } }), { threshold: .25 });
-pio.observe($("pipe"));
-
+const facts = [["event.students", "120", "#1"], ["budget.total", "400000", "#1"], ["food.option", "biryani 850", "#5"], ["food.fixed_cost", "10%", "#5"], ["venue rule", "step-free", "#3"], ["venue.option", "Hall 3 out", "#9", 1]];
+let plan = [["Venue", "Hall 2 · 180 seats"], ["Meals", "136 for 136 people"], ["Judges", "8 of 15"], ["Schedule", "240 of 240 min"], ["Spend", "Rs 344,160 of Rs 400,000"], ["Checks", "7 of 7 pass"]];
+const paintPlan = () => $("plan").innerHTML = plan.map(([k, v]) => `<div class="row"><span class="ok">${ic("check")}</span><span class="t">${esc(k)}</span><b>${esc(v)}</b></div>`).join("");
+$("msgs").innerHTML = msgs.map((m) => `<div class="msg"><div class="who">${ic(m.c === "whatsapp" ? "chat" : "mail")}${esc(m.s)}</div>${esc(m.t)}</div>`).join("");
+$("facts").innerHTML = facts.map(([k, v, s, x]) => `<div class="fact ${x ? "x" : ""}"><span class="k">${esc(k)}</span>${esc(v)}<span class="s">${esc(s)}</span></div>`).join("");
+paintPlan();
 fetch("/demo-state.json").then((r) => r.ok ? r.json() : null).then((s) => {
   if (!s?.plan) return;
   const first = s.runs[0], p = s.plan, v = s.validation;
   const ok = (v?.checks ?? []).filter((c) => c.ok).length, all = (v?.checks ?? []).length;
   const set = (k, t) => { const el = document.querySelector(`[data-k=${k}]`); if (el) el.textContent = t; };
-  set("msgs", s.messages.length); set("calls", first.calls.length); set("tokens", first.totalTokens.toLocaleString("en-US")); set("checks", `${ok} / ${all}`); set("left", rs(p.budget.remaining));
+  set("msgs", s.messages.length); set("calls", first.calls.length); set("tokens", first.totalTokens.toLocaleString("en-US")); set("checks", `${ok} of ${all}`); set("left", rs(p.budget.remaining));
   $("m-calls").textContent = `${first.calls.length} model call${first.calls.length === 1 ? "" : "s"}`; $("m-tok").textContent = `${first.totalTokens.toLocaleString("en-US")} tokens`;
-  const mx = Math.max(...first.calls.map((c) => c.tokens.total), 1);
-  $("callbars").innerHTML = first.calls.map((c) => `<div><span class="n">${c.n}</span><span>${esc(c.area)}</span><i style="width:${Math.max(4, c.tokens.total / mx * 100)}%"></i><span class="r">${c.tokens.total.toLocaleString("en-US")}</span></div>`).join("");
-  plan = [["Venue", `${p.venue?.name} · ${p.venue?.capacity} seats`], ["Meals", `${p.food?.quantity} for ${p.event.headcount} people`], ["Judges", `${p.judging.judgesNeeded} of ${p.judging.judgesAvailable}`], ["Schedule", `${(p.schedule?.blocks ?? []).reduce((t, b) => t + b.minutes, 0)} / ${p.schedule?.totalMinutes} min`], ["Spend", `${rs(p.budget.spent)} of ${rs(p.budget.total)}`], ["Checks", `${ok} / ${all} pass`]];
-  const was = document.querySelectorAll("#plan .row.on").length;
-  $("plan").innerHTML = plan.map(([k, val]) => `<div class="row ${was ? "on" : ""}"><span class="ok">${ic("check")}</span><span class="t">${esc(k)}</span><b>${esc(val)}</b></div>`).join("");
+  plan = [["Venue", `${p.venue?.name} · ${p.venue?.capacity} seats`], ["Meals", `${p.food?.quantity} for ${p.event.headcount} people`], ["Judges", `${p.judging.judgesNeeded} of ${p.judging.judgesAvailable}`], ["Schedule", `${(p.schedule?.blocks ?? []).reduce((t, b) => t + b.minutes, 0)} of ${p.schedule?.totalMinutes} min`], ["Spend", `${rs(p.budget.spent)} of ${rs(p.budget.total)}`], ["Checks", `${ok} of ${all} pass`]];
+  paintPlan();
 }).catch(() => {});
 </script>
 </body>
