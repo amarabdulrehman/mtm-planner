@@ -1,0 +1,15 @@
+{
+  "name": "mtm-planner",
+  "version": "1.0.0",
+  "description": "Agent system that reads a message pack and plans a hackathon",
+  "type": "module",
+  "scripts": {
+    "plan": "node plan.mjs",
+    "ui": "node ui/server.mjs",
+    "reset": "node -e \"require('fs').rmSync('out',{recursive:true,force:true});console.log('State cleared')\""
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@google/genai": "^3.5.0"
+  }
+}

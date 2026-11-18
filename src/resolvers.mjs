@@ -1,0 +1,46 @@
+// AREA DECISIONS. A model call for an area happens ONLY when a message carries a constraint
+// for that area that the fixed fact keys cannot express (e.g. "venue must be wheelchair accessible").
+// The model returns a small set of allowed operations; code applies them and re-validates.
+// Results are cached per area: an area is re-asked only when its own constraints change.
+import { createHash } from "node:crypto";
+import { call } from "./llm.mjs";
+
+const OPS = {
+  venue: `{"exclude":["venue names that break the constraint"],"require_features":["feature words a venue must list"],"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
+  food: `{"exclude":["food option names not allowed"],"extra_per_head":n,"extra_meals":n,"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
+  schedule: `{"start_time":"HH:MM or null","add_blocks":[{"name":"...","minutes":n}],"notes":["..."]}`,
+  judging: `{"judges_per_team":n or null,"max_teams_per_judge":n or null,"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
+  budget: `{"reserve":n,"add_costs":[{"item":"...","amount":n}],"notes":["..."]}`,
+};
+
+const SYSTEM = (area) => `You turn hackathon planning constraints for the ${area.toUpperCase()} area into operations. Output JSON only, exactly this shape (omit fields you do not need):
+${OPS[area]}
+Use only figures stated in the constraints or the context. If a constraint is not binding or is already satisfied, return {"notes":["why"]}. Keep notes short.`;
+
+export function constraintKey(list) {
+  return createHash("sha1").update(JSON.stringify(list.map((c) => c.text))).digest("hex").slice(0, 12);
+}
+
+/**
+ * For each area whose constraint list changed since last time, make ONE model call.
+ * cache: { [area]: { key, ops } }  (persisted in state)
+ * context: compact per-area context the model may need (option names, features).
+ */
+export async function resolveAreas(trace, store, cache, context) {
+  const areas = ["venue", "schedule", "food", "judging", "budget"];
+  const decisions = {};
+  const called = [];
+  for (const area of areas) {
+    const list = store.constraints.filter((c) => c.area === area);
+    if (!list.length) { delete cache[area]; continue; }
+    const key = constraintKey(list);
+    if (cache[area]?.key !== key) {
+      const input = JSON.stringify({ constraints: list.map((c) => `${c.text} (from ${c.sender})`), context: context[area] ?? {} });
+      const ops = await call(trace, { area, system: SYSTEM(area), input, maxOutputTokens: 512 });
+      cache[area] = { key, ops };
+      called.push(area);
+    }
+    decisions[area] = cache[area].ops;
+  }
+  return { decisions, called };
+}

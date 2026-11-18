@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MTM Planner</title>
+<style>
+  :root { --bg:#0b0d12; --card:#12151c; --line:#232836; --text:#e8eaf0; --mute:#8a90a2; --ok:#34d399; --bad:#f87171; --warn:#fbbf24; --acc:#7c9cff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { display:flex; gap:16px; align-items:center; padding:14px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
+  h1 { font-size:17px; margin:0; }
+  .pill { padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; border:1px solid var(--line); color:var(--mute); }
+  .pill.ok { color:var(--ok); border-color:#1f6f53; background:#0f2a21; }
+  .pill.bad { color:var(--bad); border-color:#7a2d2d; background:#2a1212; }
+  .grow { flex:1; }
+  .tabs { display:flex; gap:4px; }
+  .tabs button { background:none; border:1px solid var(--line); color:var(--mute); padding:6px 12px; border-radius:8px; cursor:pointer; font:inherit; }
+  .tabs button.on { color:var(--text); background:var(--card); }
+  main { padding:20px 22px; max-width:1300px; margin:0 auto; }
+  .grid { display:grid; grid-template-columns: 1.4fr 1fr; gap:16px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:0 0 10px; }
+  .big { font-size:20px; font-weight:600; }
+  .mute { color:var(--mute); }
+  table { width:100%; border-collapse:collapse; }
+  td, th { padding:6px 4px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .check { display:flex; gap:8px; padding:4px 0; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+  .msg { border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px; }
+  .msg.rejected { border-color:#7a2d2d; background:#1d1010; }
+  .tag { font-size:11px; font-weight:700; text-transform:uppercase; padding:1px 7px; border-radius:6px; margin-left:6px; }
+  .tag.used { background:#0f2a21; color:var(--ok); } .tag.rejected { background:#3a1414; color:var(--bad); }
+  .tag.ignored, .tag.outdated { background:#2a2414; color:var(--warn); } .tag.partly { background:#1b2240; color:var(--acc); }
+  .call { border:1px solid var(--line); border-radius:10px; margin-bottom:8px; }
+  .call summary { padding:8px 12px; cursor:pointer; display:flex; gap:10px; align-items:center; }
+  .area { font-size:11px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:6px; background:#1b2240; color:var(--acc); }
+  pre { margin:0; padding:10px 12px; white-space:pre-wrap; word-break:break-word; font:12px/1.45 ui-monospace, Consolas, monospace; color:#c9cdd8; border-top:1px solid var(--line); max-height:340px; overflow:auto; }
+  .note { font:12px/1.5 ui-monospace, Consolas, monospace; padding:2px 0; }
+  .run h3 { margin:0 0 8px; font-size:15px; }
+  .empty { padding:60px; text-align:center; color:var(--mute); }
+</style>
+</head>
+<body>
+<header>
+  <h1>MTM Planner</h1>
+  <span id="valid" class="pill">no plan</span>
+  <span id="meta" class="mute"></span>
+  <span class="grow"></span>
+  <div class="tabs">
+    <button data-tab="plan" class="on">Plan</button>
+    <button data-tab="messages">Messages</button>
+    <button data-tab="trace">Trace</button>
+  </div>
+</header>
+<main id="app"><div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div></main>
+<script>
+let tab = "plan", last = "";
+const rs = (n) => n == null ? "?" : "Rs " + Number(n).toLocaleString("en-US");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+document.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => { tab = b.dataset.tab; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b)); last = ""; tick(); });
+
+function planView(s) {
+  const p = s.plan, v = s.validation;
+  if (!p) return `<div class="empty">No plan yet.</div>`;
+  const rejected = s.messages.filter((m) => m.status === "rejected");
+  return `<div class="grid"><div>
+    <div class="card"><h2>Event</h2><div class="big">${p.event.students} students · ${p.event.teams} teams · ${p.event.hours} h</div>
+      <div class="mute">${p.event.headcount} people on site = ${p.event.students} students + ${p.event.staff} staff + ${p.judging.judgesNeeded} judges${p.event.extras.map((x) => ` + ${x.n} ${esc(x.who)}`).join("")}</div></div>
+    <div class="card"><h2>Venue</h2>${p.venue ? `<div class="big">${esc(p.venue.name)} · ${rs(p.venue.price)}</div><div class="mute">${p.venue.capacity} seats for ${p.event.headcount} people · cheapest of ${p.venue.feasible.length} that fit${p.venue.requiredFeatures.length ? " · needs " + esc(p.venue.requiredFeatures.join(", ")) : ""} · source ${esc(p.venue.source)}</div>${p.venue.notes.map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}` : `<div class="bad">No venue fits</div>`}</div>
+    <div class="card"><h2>Schedule</h2><table>${(p.schedule?.blocks ?? []).map((b) => `<tr><td class="mute" style="width:120px">${b.start} – ${b.end}</td><td>${esc(b.name)}</td><td class="num">${b.minutes} min</td></tr>`).join("")}</table>${(p.schedule?.notes ?? []).map((n) => `<div class="mute">• ${esc(n)}</div>`).join("")}</div>
+    <div class="card"><h2>Food</h2>${p.food ? `<div class="big">${p.food.quantity} × ${esc(p.food.option)} @ ${rs(p.food.pricePerHead)}</div><div class="mute">${rs(p.food.cost)} total${p.food.fixed.map((f) => ` · ${esc(f.item)} ${rs(f.amount)}`).join("")}</div>` : ""}</div>
+    <div class="card"><h2>Judging</h2><div class="big">${p.judging.judgesNeeded} of ${p.judging.judgesAvailable} judges</div>
+      <div class="mute">${p.judging.teams} teams × ${p.judging.judgesPerTeam} judge ÷ max ${p.judging.maxTeamsPerJudge} teams each · ${p.judging.minutesPerTeam} min per team → ${p.judging.judgingMinutes} min · fees ${rs(p.judging.feeTotal)}</div></div>
+    <div class="card"><h2>Budget</h2><table>${p.budget.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="mute">${esc(l.source)}</td><td class="num">${rs(l.amount)}</td></tr>`).join("")}
+      <tr><th>Total</th><th></th><th class="num">${rs(p.budget.spent)} / ${rs(p.budget.total)}</th></tr></table>
+      <div class="mute" style="margin-top:6px">Remaining ${rs(p.budget.remaining)}</div>
+      ${p.budget.requests.map((r) => `<div class="warn" style="margin-top:4px">Not included: ${esc(r.item)} ${rs(r.amount)} (request, not approved${r.affordable ? "; would fit" : "; would not fit"})</div>`).join("")}</div>
+  </div><div>
+    <div class="card"><h2>Checks</h2>${(v?.checks ?? []).map((c) => `<div class="check"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "PASS" : "FAIL"}</b><div><div>${esc(c.name)}</div><div class="mute">${esc(c.detail)}</div></div></div>`).join("")}</div>
+    <div class="card"><h2>Rejected messages (${rejected.length})</h2>${rejected.length ? rejected.map(msgView).join("") : `<div class="mute">None</div>`}</div>
+    ${p.assumptions.length ? `<div class="card"><h2>Assumptions</h2>${p.assumptions.map((a) => `<div class="mute">• ${esc(a)}</div>`).join("")}</div>` : ""}
+  </div></div>`;
+}
+function msgView(m) {
+  const cls = m.status === "partly used" ? "partly" : m.status;
+  return `<div class="msg ${m.status === "rejected" ? "rejected" : ""}"><b>#${m.id} ${esc(m.sender)}</b><span class="tag ${cls}">${esc(m.status)}</span>
+    <span class="mute"> · ${esc(m.role)} · ${esc(m.date ?? "no date")}</span><div>${esc(m.summary)}</div>
+    ${m.reasons.length ? `<div class="${m.status === "rejected" ? "bad" : "mute"}">${m.reasons.map(esc).join("<br>")}</div>` : ""}</div>`;
+}
+function traceView(s) {
+  const all = s.runs.reduce((t, r) => t + r.totalTokens, 0);
+  return `<div class="card"><b>Total tokens, all runs: ${all.toLocaleString()}</b> <span class="mute">· ${s.runs.length} runs · ${s.runs.reduce((t, r) => t + r.calls.length, 0)} model calls</span></div>` +
+    [...s.runs].reverse().map((r) => `<div class="card run"><h3>${esc(r.kind)} <span class="mute">· ${esc(r.source)} · ${new Date(r.at).toLocaleTimeString()} · ${r.calls.length} calls · ${r.totalTokens} tokens</span></h3>
+      ${r.calls.map((c) => `<details class="call"><summary><b>Call ${c.n}</b><span class="area">${esc(c.area)}</span><span class="mute">${esc(c.model)}</span><span class="grow"></span><span class="mute">in ${c.tokens.input} · out ${c.tokens.output}${c.tokens.thinking ? " · think " + c.tokens.thinking : ""} · total ${c.tokens.total}</span></summary><pre>INPUT\n${esc(c.input)}</pre><pre>OUTPUT\n${esc(c.output)}</pre></details>`).join("") || `<div class="mute">No model calls</div>`}
+      ${r.notes.map((n) => `<div class="note ${n.kind === "rejected" ? "bad" : n.kind === "error" ? "bad" : n.kind === "info" ? "mute" : "warn"}">[${esc(n.kind)}] ${esc(n.text)}</div>`).join("")}</div>`).join("");
+}
+async function tick() {
+  try {
+    const s = await (await fetch("/api/state")).json();
+    const key = JSON.stringify(s?.runs?.length) + tab + (s?.messages?.length ?? 0);
+    if (key === last) return; last = key;
+    const app = document.getElementById("app");
+    if (!s) { app.innerHTML = `<div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div>`; return; }
+    const ok = s.validation?.ok;
+    const v = document.getElementById("valid"); v.textContent = ok ? "PLAN VALID" : "PLAN INVALID"; v.className = "pill " + (ok ? "ok" : "bad");
+    const model = s.runs.at(-1)?.calls.at(-1)?.model ?? "";
+    document.getElementById("meta").textContent = `${model} · ${s.runs.reduce((t, r) => t + r.totalTokens, 0).toLocaleString()} tokens · ${s.messages.length} messages`;
+    app.innerHTML = tab === "plan" ? planView(s) : tab === "messages" ? s.messages.map(msgView).join("") : traceView(s);
+  } catch (e) { /* server restarting */ }
+}
+tick(); setInterval(tick, 2000);
+</script>
+</body>
+</html>
