@@ -9,7 +9,7 @@ import { run, emptyState } from "../src/engine.mjs";
 import { loadState, save } from "../src/report.mjs";
 
 const OUT = new URL("../out/", import.meta.url);
-const html = readFileSync(new URL("./index.html", import.meta.url));
+const page = () => readFileSync(new URL("./index.html", import.meta.url)); // read per request: edits show on refresh
 let busy = false;
 
 const json = (res, code, obj) => { res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" }); res.end(JSON.stringify(obj)); };
@@ -40,6 +40,6 @@ createServer((req, res) => {
     });
     return;
   }
-  res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-  res.end(html);
+  res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+  res.end(page());
 }).listen(4321, () => console.log("UI on http://localhost:4321"));
