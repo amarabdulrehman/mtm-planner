@@ -114,7 +114,11 @@ export function buildPlan(store, decisions = {}) {
   // ---- schedule
   const totalMin = hours ? Math.round(hours * 60) : null;
   const breaks = get(store, "schedule.break").map((e) => ({ name: e.item || "Break", minutes: Number(e.v) || 0, source: src(e) }));
-  const extraBlocks = (d.schedule.add_blocks ?? []).map((b) => ({ name: b.name, minutes: Number(b.minutes) || 0, source: "constraint" }));
+  // a constraint block that repeats an existing break (e.g. "Prayer break" twice) is dropped
+  const words = (s) => String(s).toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3 && w !== "break");
+  const extraBlocks = (d.schedule.add_blocks ?? [])
+    .map((b) => ({ name: b.name, minutes: Number(b.minutes) || 0, source: "constraint" }))
+    .filter((b) => b.minutes > 0 && !breaks.some((x) => words(x.name).some((w) => words(b.name).includes(w)) || x.name.toLowerCase() === String(b.name).toLowerCase()));
   let schedule = null;
   if (totalMin && judgingMinutes) {
     const fixed = [

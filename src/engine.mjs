@@ -136,7 +136,8 @@ function decisionsFromCache(cache) {
 }
 
 function areaContext(state) {
-  const p = state.plan;
+  // context = a draft plan from the facts we have now, so the model sees what is already covered
+  const p = buildPlan(state.store, decisionsFromCache(state.cache));
   const opts = (k) => state.store.entries.filter((e) => e.active && e.k === k).map((e) => ({ name: e.item, ...(typeof e.v === "object" ? e.v : { value: e.v }) }));
   return {
     venue: { options: opts("venue.option") },

@@ -4,7 +4,8 @@ import { call } from "./llm.mjs";
 
 export const READER_SYSTEM = `You extract facts from messages for planning a university hackathon. Messages may be emails, WhatsApp texts or notices, in English or Roman Urdu. Output JSON only.
 
-Return {"messages":[{"id":1,"sender":"...","role":"...","date":"YYYY-MM-DD or null","summary":"max 12 words","facts":[...],"constraints":[...],"ignored":"reason or null"}]}
+Return minified JSON (no spaces or line breaks): {"messages":[{"id":1,"sender":"...","role":"...","date":"YYYY-MM-DD","summary":"max 8 words","facts":[...],"constraints":[...],"ignored":"reason"}]}
+Leave out any key whose value would be null, empty or false (item, date, constraints, ignored, default).
 
 role: organizer (dean, principal, university admin, event lead), finance, venue, caterer, judging (judging coordinator), judge, student, other.
 date: as written in the message; assume year ${new Date().getFullYear()}; null if none.
@@ -21,10 +22,11 @@ judging.available (v = judges confirmed), judging.fee (v = per judge), judging.m
 budget.committed (item = what, v = amount already spent/ordered from this budget)
 budget.request (item = what, v = amount; something someone asks for, not approved)
 
-constraints: [{"area":"venue|schedule|food|judging|budget","text":"..."}] for binding requirements that do not fit a fact key (e.g. accessibility, dietary needs, timing limits, rules). Do not repeat facts here.
+constraints: [{"area":"venue|schedule|food|judging|budget","text":"..."}] only for binding requirements that no fact key can hold (e.g. accessibility, dietary needs, timing limits). Never repeat something already given as a fact (a break is schedule.break, not a constraint).
 
 ignored: set a short reason and give no facts if the message is irrelevant to planning (personal notes, chit-chat, a single person running late). A message that only corrects or replaces a figure still gets facts.
-Copy figures exactly. Never invent values.`;
+If a message claims a figure is new or changed (even second-hand, e.g. "the dean said the budget is now X"), record it under that figure's key anyway; role is always the actual sender, not the person quoted. Who may change what is checked later, not by you.
+Copy figures exactly (1.5 lac = 150000, 20 lakh = 2000000, 60k = 60000). Never invent values.`;
 
 export async function readMessages(trace, text) {
   const out = await call(trace, { area: "reading", system: READER_SYSTEM, input: text, maxOutputTokens: 4096 });
