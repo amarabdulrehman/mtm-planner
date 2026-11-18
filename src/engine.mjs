@@ -48,7 +48,7 @@ export async function run(state, text, source = "input") {
 async function runInner(state, text, trace) {
   const fresh = newPart(state, text);
   if (!fresh) {
-    trace.notes.push({ kind: "info", text: "No new messages in this file. Plan unchanged." });
+    trace.notes.push({ kind: "info", text: text.trim() ? "No new messages in this file (already processed). Plan unchanged." : "Input file is empty: nothing to read. Plan unchanged." });
     return;
   }
 
@@ -61,7 +61,7 @@ async function runInner(state, text, trace) {
 
   // 2. MERGE: apply message by message; reject any message that breaks a check that was passing
   for (const m of msgs) {
-    const record = { id: m.id, sender: m.sender, role: m.role, date: m.date, summary: m.summary, status: "used", reasons: [] };
+    const record = { id: m.id, sender: m.sender, role: m.role, channel: m.channel, date: m.date, summary: m.summary, status: "used", reasons: [] };
     if (m.ignored) {
       record.status = "ignored";
       record.reasons.push(m.ignored);
@@ -78,6 +78,11 @@ async function runInner(state, text, trace) {
     for (const r of res.rejected) if (r.fact.k === "food.quantity" && hc && Number(r.fact.v) < hc) r.reason += `; it would also leave ${hc - Number(r.fact.v)} of ${hc} people without food`;
     for (const r of res.rejected) trace.notes.push({ kind: "rejected", text: `#${m.id} ${m.sender}: ${r.fact.k}${r.fact.item ? ` (${r.fact.item})` : ""} = ${JSON.stringify(r.fact.v)} not used: ${r.reason}` });
     for (const o of res.outdated) trace.notes.push({ kind: "outdated", text: `#${m.id} ${m.sender}: ${o.fact.k}${o.fact.item ? ` (${o.fact.item})` : ""} out of date: ${o.reason}` });
+    for (const c of res.conflicts) {
+      const txt = `${c.now.k}${c.now.item ? ` (${c.now.item})` : ""}: #${c.old.msgId} ${c.old.sender} and #${c.now.msgId} ${c.now.sender} give different values on the same date (${JSON.stringify(c.old.v)} vs ${JSON.stringify(c.now.v)}); using the later message, needs confirmation`;
+      (state.store.conflicts ??= []).push(txt);
+      trace.notes.push({ kind: "conflict", text: txt });
+    }
     for (const s of res.superseded) trace.notes.push({ kind: "superseded", text: `#${m.id} ${m.sender}: ${s.now.k}${s.now.item ? ` (${s.now.item})` : ""} ${JSON.stringify(s.old.v)} -> ${JSON.stringify(s.now.v)} (replaces #${s.old.msgId})` });
 
     const was = passing(beforeCheck);
@@ -142,7 +147,7 @@ function areaContext(state) {
   return {
     venue: { options: opts("venue.option") },
     food: { options: opts("food.option"), headcount: p?.event.headcount },
-    schedule: { hours: p?.event.hours, blocks: p?.schedule?.blocks.map((b) => `${b.name} ${b.minutes}m`) },
+    schedule: { hours: p?.event.hours, blocks: p?.schedule?.blocks.map((b) => `${b.start}-${b.end} ${b.name}`) },
     judging: { teams: p?.event.teams },
     budget: { total: p?.budget.total, spent: p?.budget.spent },
   };

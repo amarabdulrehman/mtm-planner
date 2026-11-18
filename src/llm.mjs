@@ -101,13 +101,22 @@ export async function call(trace, { area, system, input, maxOutputTokens = 2048 
   throw new Error(`All models failed. Last error: ${lastErr?.message}`);
 }
 
+// Accept the first complete JSON value in the reply, ignoring text before or after it.
 function parseJson(text) {
   const t = String(text).trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
   try {
     return JSON.parse(t);
   } catch {
-    const s = t.indexOf("{"), e = t.lastIndexOf("}");
-    if (s >= 0 && e > s) return JSON.parse(t.slice(s, e + 1));
-    throw new Error("Model did not return JSON: " + t.slice(0, 120));
+    const s = t.search(/[{[]/);
+    if (s < 0) throw new Error("Model did not return JSON: " + t.slice(0, 120));
+    let depth = 0, inStr = false, esc = false;
+    for (let i = s; i < t.length; i++) {
+      const c = t[i];
+      if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true;
+      else if (c === "{" || c === "[") depth++;
+      else if (c === "}" || c === "]") { depth--; if (depth === 0) return JSON.parse(t.slice(s, i + 1)); }
+    }
+    throw new Error("Model returned incomplete JSON: " + t.slice(0, 120));
   }
 }

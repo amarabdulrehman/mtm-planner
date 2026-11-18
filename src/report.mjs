@@ -1,5 +1,6 @@
 // OUTPUT: prints the trace and the plan, and saves both to out/ (plan.md, trace.txt, state.json).
 import { mkdirSync, writeFileSync, appendFileSync, existsSync, readFileSync } from "node:fs";
+import { buildOutbox, outboxText } from "./outbox.mjs";
 
 const OUT = new URL("../out/", import.meta.url);
 const rs = (n) => (n == null ? "?" : "Rs " + Number(n).toLocaleString("en-US"));
@@ -44,12 +45,14 @@ export function planText(state) {
   for (const n of p.schedule?.notes ?? []) L.push(`- ${n}`);
   L.push("");
   L.push("## Food");
+  if (p.food?.special?.length) L.push(`Of which: ${p.food.special.map((x) => `${x.count} ${x.name}`).join(", ")}; ${p.food.quantity - p.food.special.reduce((t, x) => t + x.count, 0)} regular (same total, same price)`);
   if (p.food) L.push(`${p.food.quantity} x ${p.food.option} @ ${rs(p.food.pricePerHead)} = ${rs(p.food.quantity * p.food.pricePerHead)}${p.food.fixed.length ? ` + ${p.food.fixed.map((f) => `${f.item} ${rs(f.amount)}`).join(", ")}` : ""}`);
   for (const n of p.food?.notes ?? []) L.push(`- ${n}`);
   L.push("");
   L.push("## Judging");
   const j = p.judging;
   L.push(`${j.judgesNeeded} judges needed of ${j.judgesAvailable} available: ${j.teams} teams x ${j.judgesPerTeam} judge(s), max ${j.maxTeamsPerJudge} teams each, ${j.minutesPerTeam} min per team -> ${j.judgingMinutes} min judging. Fees ${j.judgesNeeded} x ${rs(j.feePerJudge)} = ${rs(j.feeTotal)}`);
+  for (const line of assignmentLines(p)) L.push(line);
   for (const n of j.notes) L.push(`- ${n}`);
   L.push("");
   L.push("## Budget");
@@ -66,13 +69,31 @@ export function planText(state) {
   return L.join("\n");
 }
 
+// "Judge 1: team 1 at 12:00, team 2 at 12:15, team 3 at 12:30"
+export function assignmentLines(p) {
+  const a = p.judging.assignments;
+  if (!a) return [];
+  const block = p.schedule?.blocks.find((b) => b.isJudging);
+  const base = block ? block.start : null;
+  const clock = (off) => {
+    if (!base) return `+${off} min`;
+    const rel = base.startsWith("+");
+    const [h, m] = base.replace("+", "").split(":").map(Number);
+    const t = h * 60 + m + off;
+    return `${rel ? "+" : ""}${rel ? Math.floor(t / 60) : String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+  };
+  return ["Assignments (each team one uninterrupted slot, no judge double-booked):", ...a.map((x) => `  Judge ${x.judge}: ${x.teams.map((t) => `team ${t.team} at ${clock(t.offset)}`).join(", ")}`)];
+}
+
 export function save(state, trace) {
   mkdirSync(OUT, { recursive: true });
+  state.outbox = buildOutbox(state); // reply drafts, plain code, no model calls
   const t = traceText(trace, state);
   writeFileSync(new URL("state.json", OUT), JSON.stringify(state, null, 1));
   writeFileSync(new URL("plan.md", OUT), planText(state));
+  writeFileSync(new URL("outbox.txt", OUT), outboxText(state.outbox));
   appendFileSync(new URL("trace.txt", OUT), t + "\n\n");
   // one file to upload: final plan + full trace of every run
-  writeFileSync(new URL("submission.txt", OUT), planText(state) + "\n\n\n" + readFileSync(new URL("trace.txt", OUT), "utf8"));
+  writeFileSync(new URL("submission.txt", OUT), planText(state) + "\n\n\n" + readFileSync(new URL("trace.txt", OUT), "utf8") + "\n\n=== OUTBOX (reply drafts, made by code, not sent)\n" + outboxText(state.outbox));
   return t;
 }

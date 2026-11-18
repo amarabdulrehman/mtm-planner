@@ -64,10 +64,44 @@ function dateRank(d) {
  * Apply one message's facts to the store (mutates). Returns notes for the trace:
  * {accepted:[], rejected:[{fact, reason}], superseded:[], outdated:[]}
  */
+// Counts that a message may give in groups ("12 volunteers and 3 organisers"): add them up.
+const SUMMED = new Set(["event.staff"]);
+
+// Money figures (rupees). A value below Rs 50 has no believable unit ("printing is now 6") and is not applied.
+const MONEY = new Set(["budget.total", "food.fixed_cost", "judging.fee", "budget.committed", "budget.request"]);
+const COUNTS = new Set(["event.students", "event.team_size", "event.teams", "event.hours", "event.staff", "event.extra_people",
+  "judging.available", "judging.minutes_per_team", "judging.max_teams_per_judge", "judging.judges_per_team", "food.quantity", "schedule.break"]);
+
+function badNumber(f) {
+  const nums = [];
+  if (MONEY.has(f.k) || COUNTS.has(f.k)) nums.push(["value", f.v]);
+  if (f.k === "venue.option") nums.push(["capacity", f.v?.capacity], ["price", f.v?.price ?? f.v?.price_per_hour]);
+  if (f.k === "food.option") nums.push(["price per head", f.v?.price_per_head]);
+  for (const [label, raw] of nums) {
+    if (raw == null) continue;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return `${label} "${raw}" is not a number`;
+    if (n < 0) return `${label} ${n} is negative`;
+    if ((MONEY.has(f.k) || label === "price" || label === "price per head") && n > 0 && n < 50)
+      return `amount ${n} has no clear unit (rupees? thousands?); previous figure kept until clarified`;
+  }
+  return null;
+}
+
 export function applyMessage(store, msg) {
-  const res = { accepted: [], rejected: [], superseded: [], outdated: [] };
+  const res = { accepted: [], rejected: [], superseded: [], outdated: [], conflicts: [] };
   const seq = ++store.seq;
+  const facts = [];
   for (const f of msg.facts) {
+    const prev = SUMMED.has(f.k) && facts.find((x) => x.k === f.k);
+    if (prev && Number.isFinite(Number(f.v))) {
+      prev.v = Number(prev.v) + Number(f.v);
+      prev.item = [prev.item, f.item].filter(Boolean).join(" + ") || null;
+    } else facts.push({ ...f });
+  }
+  for (const f of facts) {
+    const bad = badNumber(f);
+    if (bad) { res.rejected.push({ fact: f, reason: bad }); continue; }
     if (!KNOWN_KEYS.has(f.k)) {
       res.rejected.push({ fact: f, reason: `unknown figure "${f.k}"` });
       continue;
@@ -81,6 +115,12 @@ export function applyMessage(store, msg) {
     const current = store.entries.find(
       (e) => e.active && e.k === f.k && (!ITEM_KEYS.has(f.k) || sameItem(e.item, entry.item)),
     );
+    // "eight additional staff": an increment on the current figure
+    if (f.op === "add" && Number.isFinite(Number(f.v))) {
+      const base = current ? Number(current.v) || 0 : 0;
+      entry.v = base + Number(f.v);
+      entry.note = `${base} + ${Number(f.v)}`;
+    }
     if (current) {
       const newer = dateRank(entry.date) > dateRank(current.date) || (dateRank(entry.date) === dateRank(current.date) && seq > current.seq);
       if (!newer) {
@@ -91,6 +131,9 @@ export function applyMessage(store, msg) {
       }
       current.active = false;
       res.superseded.push({ old: current, now: entry });
+      // same date, same kind of sender, different value: we use the later one but say so
+      if (entry.date && current.date && dateRank(entry.date) === dateRank(current.date) && current.msgId !== entry.msgId && JSON.stringify(current.v) !== JSON.stringify(entry.v) && f.op !== "add")
+        res.conflicts.push({ old: current, now: entry });
     }
     store.entries.push(entry);
     res.accepted.push(entry);

@@ -16,7 +16,7 @@ const state = loadState(emptyState);
 const t0 = Date.now();
 let trace;
 try {
-  trace = await run(state, readFileSync(file, "utf8"), file);
+  trace = await run(state, readFileSync(file, "utf8").replace(/^\uFEFF/, ""), file);
 } catch (e) {
   // never lose the trace: record the failure, keep the previous plan
   trace = state.lastTrace ?? { calls: [], notes: [], kind: "failed run", source: file, started: new Date().toISOString(), totalTokens: 0 };
@@ -27,4 +27,5 @@ try {
 const text = save(state, trace);
 console.log(text);
 console.log("\n" + planText(state));
+console.log(`\nOutbox: ${state.outbox?.length ?? 0} reply drafts (email/WhatsApp, made by code, not sent) saved to out/outbox.txt`);
 console.log(`\nDone in ${((Date.now() - t0) / 1000).toFixed(1)} s. Saved out/plan.md and out/trace.txt. UI: npm run ui`);

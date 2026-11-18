@@ -35,8 +35,10 @@ export function validate(plan) {
     s ? (problems.length ? problems.join("; ") : `${sum}/${s.totalMinutes} min${s.start ? ` (${s.start}-${s.end})` : ""}, build ${s.buildMinutes} min, judging ${s.judgingMinutes} min`) : "no schedule");
 
   const j = plan.judging;
-  add("Enough judges", j.judgesNeeded != null && j.judgesAvailable != null && j.judgesAvailable >= j.judgesNeeded,
-    `${j.judgesNeeded} needed (${j.teams} teams x ${j.judgesPerTeam} / ${j.maxTeamsPerJudge} per judge), ${j.judgesAvailable} available`);
+  const enough = j.judgesNeeded != null && Number.isFinite(j.judgesNeeded) && j.judgesAvailable != null && j.judgesAvailable >= j.judgesNeeded;
+  add("Enough judges", enough,
+    enough ? `${j.judgesNeeded} needed (${j.teams} teams x ${j.judgesPerTeam} / ${j.maxTeamsPerJudge} per judge), ${j.judgesAvailable} available`
+      : `${j.judgesAvailable ?? "?"} judges x ${j.maxTeamsPerJudge ?? "?"} team(s) each${j.windowMinutes != null ? ` (in a ${j.windowMinutes}-min window)` : ""} can cover at most ${j.coverableTeams ?? "?"} of ${j.teams ?? "?"} teams; ${Number.isFinite(j.judgesNeeded) ? j.judgesNeeded : "more"} judges needed`);
 
   add("Meals cover everyone", plan.food && plan.food.quantity >= e.headcount,
     plan.food ? `${plan.food.quantity} meals for ${e.headcount} people` : "no food option");
