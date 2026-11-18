@@ -118,7 +118,11 @@
     <button class="iconbtn mic" id="c-mic" title="Speak the message (browser speech recognition, no model tokens)">🎤 Speak</button>
   </div>
   <textarea id="c-text" placeholder="Type, paste or speak the message. You can also paste whole lines like:  M11 | 12 Nov 2026 | Accounts | Printing is now Rs 6,000.   (Ctrl+Enter to send)" aria-label="Message text"></textarea>
-  <div class="row"><button class="btn" id="c-send">Update my plan</button><button class="btn ghost" id="c-clear">Clear</button><span class="mute" id="c-hint"></span></div>
+  <div class="row"><button class="btn" id="c-send">Update my plan</button>
+    <button class="btn ghost cloud-only" id="c-new" hidden title="Plan from scratch using everything in the box">Start a new plan</button>
+    <label class="btn ghost cloud-only" hidden style="cursor:pointer">Load .txt<input type="file" id="c-file" accept=".txt,text/plain" hidden></label>
+    <button class="btn ghost" id="c-clear">Clear</button><span class="grow"></span>
+    <button class="iconbtn cloud-only" id="c-reset" hidden title="Forget your changes and show the saved demo plan">↺ Reset demo</button></div>
   <div class="status" id="c-status" aria-live="polite"></div>
 </div></section>
 <main id="app"><div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div></main>
@@ -191,7 +195,7 @@ function diffPlan(a, b) {
   const sa = bl(a), sb = bl(b);
   for (const x of sb.filter((y) => !sa.includes(y))) { cards.add("schedule"); out.push({ dir: "same", text: `Schedule now has: ${x}` }); }
   for (const x of sa.filter((y) => !sb.includes(y))) { cards.add("schedule"); out.push({ dir: "same", text: `Schedule no longer has: ${x}` }); }
-  const li = (p) => Object.fromEntries((p.budget?.lines ?? []).map((l) => [l.item, l.amount]));
+  const li = (p) => Object.fromEntries((p.budget?.lines ?? []).map((l) => [l.item.replace(/: (\w)/, (m, c) => ": " + c.toUpperCase()), l.amount]));
   const la = li(a), lb = li(b);
   for (const k of new Set([...Object.keys(la), ...Object.keys(lb)])) if (la[k] !== lb[k] && !/^(Venue|Food: \d|Judges)/.test(k)) money("budget", k, la[k] ?? 0, lb[k] ?? 0);
   money("budget", "Total spend", a.budget?.spent, b.budget?.spent);
@@ -228,19 +232,38 @@ function checkBadges(v) {
 }
 // ---------- state loading (local server, or the saved snapshot on the public demo) ----------
 let demo = false, flashNow = false, lastRuns = null;
+let mode = null, cloudState = undefined, configured = true; // mode: "local" (npm run ui) | "cloud" (Vercel) | "demo" (static)
+const isJson = (r) => r.ok && (r.headers.get("content-type") || "").includes("json");
+async function detectMode() {
+  try { const r = await fetch("/api/state", { cache: "no-store" }); if (isJson(r)) return "local"; } catch {}
+  try { const r = await fetch("/api/run", { cache: "no-store" }); if (isJson(r)) { configured = !!(await r.json()).configured; return "cloud"; } } catch {}
+  return "demo";
+}
+function keep(st) { cloudState = st; try { localStorage.setItem("mtm-state", JSON.stringify(st)); } catch {} }
 async function loadStateJson() {
-  if (!demo) { try { const r = await fetch("/api/state", { cache: "no-store" }); if (r.ok && (r.headers.get("content-type") || "").includes("json")) return r.json(); } catch {} demo = true; }
-  const r = await fetch("state.json", { cache: "no-store" }); return r.ok ? r.json() : null;
+  if (!mode) { mode = await detectMode(); setupMode(); }
+  if (mode === "local") { const r = await fetch("/api/state", { cache: "no-store" }); return r.json(); }
+  if (cloudState === undefined) {
+    try { const t = localStorage.getItem("mtm-state"); if (t) cloudState = JSON.parse(t); } catch {}
+    if (cloudState === undefined) { try { const r = await fetch("demo-state.json", { cache: "no-store" }); cloudState = r.ok ? await r.json() : null; } catch { cloudState = null; } }
+  }
+  return cloudState;
+}
+function setupMode() {
+  demo = mode === "demo";
+  document.querySelectorAll(".cloud-only").forEach((e) => (e.hidden = mode !== "cloud"));
+  if (mode !== "local") { const h = document.querySelector("h1"); h.style.cursor = "pointer"; h.title = "Back to home"; h.onclick = () => (location.href = "/"); }
+  if (mode === "cloud" && !configured) { const d = $("demo"); d.hidden = false; d.textContent = "You are viewing a saved plan from a real run. Live updates turn on once a model key is added to this deployment."; }
 }
 async function tick() {
   try {
     const s = await loadStateJson();
     if (demo) { document.getElementById("demo").hidden = false; document.getElementById("composer").hidden = true; }
-    const key = JSON.stringify(s?.runs?.length) + tab + (s?.messages?.length ?? 0);
+    const key = JSON.stringify(s?.runs?.length) + tab + (s?.messages?.length ?? 0) + (s?.runs?.at(-1)?.at ?? "");
     if (key === last) return; last = key;
     flashNow = lastRuns != null && s?.runs?.length !== lastRuns; lastRuns = s?.runs?.length ?? 0;
     const app = document.getElementById("app");
-    if (!s) { app.innerHTML = `<div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div>`; return; }
+    if (!s) { app.innerHTML = mode === "cloud" ? `<div class="empty">No plan yet. Paste or load a message pack above and press <b>Start a new plan</b>.</div>` : `<div class="empty">No plan yet. Run <code>npm run plan -- messages.txt</code></div>`; return; }
     const ok = s.validation?.ok;
     const v = document.getElementById("valid"); v.textContent = ok ? "✓ Plan is ready" : "! Plan needs attention"; v.className = "pill " + (ok ? "ok" : "bad");
     const model = s.runs.at(-1)?.calls.at(-1)?.model ?? "";
@@ -269,22 +292,35 @@ function composed() {
   const ch = $("c-channel").value;
   return `UI${n} | ${d} | ${$("c-sender").value.trim() || "Unknown sender"} | ${ch === "Notice" ? "" : `[${ch}] `}${t.replace(/\s*\n\s*/g, " ")}`;
 }
-async function send() {
-  const text = composed(); const st = $("c-status");
+async function send(fresh = false) {
+  const text = fresh ? $("c-text").value.trim() : composed(); const st = $("c-status");
   if (!text) { st.innerHTML = `<span class="warn">Type or say a message first.</span>`; $("c-text").focus(); return; }
   $("c-send").disabled = true; $("c-send").textContent = "Updating…"; st.innerHTML = `<span class="mute">Reading your message and updating the plan…</span>`;
   try {
-    const r = await fetch("/api/message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || r.statusText);
+    let j;
+    if (mode === "cloud") {
+      const r = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, state: fresh ? null : cloudState, source: fresh ? "new plan" : "web" }) });
+      const b = await r.json().catch(() => ({ error: r.statusText }));
+      if (!r.ok) throw new Error(b.error || r.statusText);
+      keep(b.state); j = b.run;
+    } else {
+      const r = await fetch("/api/message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+      j = await r.json();
+      if (!r.ok) throw new Error(j.error || r.statusText);
+    }
+    const failed = j.notes.find((x) => x.startsWith("[error] Run stopped"));
+    if (failed) throw new Error(failed.replace("[error] Run stopped: ", "").replace(" set GEMINI_API_KEY in .env.", " a model key has not been added yet."));
     st.innerHTML = `<span class="${j.valid ? "ok" : "bad"}">${j.valid ? "✓ Done — your plan is updated and still valid" : "Plan kept, but it is not valid — see checks"}</span> <span class="mute">· ${j.calls} model call${j.calls === 1 ? "" : "s"} · ${j.tokens} tokens · ${(j.ms / 1000).toFixed(1)} s</span>` +
       j.notes.map((n) => `<div class="${n.startsWith("[rejected]") ? "bad" : "warn"}">${esc(n)}</div>`).join("");
     $("c-text").value = ""; tab = "plan"; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === "plan")); last = ""; await tick();
     window.scrollTo({ top: $("app").offsetTop - 70, behavior: "smooth" });
-  } catch (e) { st.innerHTML = `<span class="bad">Could not update: ${esc(e.message)}</span>`; }
+  } catch (e) { st.innerHTML = `<span class="bad">Couldn’t update the plan: ${esc(e.message)} Your current plan is unchanged.</span>`; }
   finally { $("c-send").disabled = false; $("c-send").textContent = "Update my plan"; }
 }
-$("c-send").onclick = send;
+$("c-send").onclick = () => send(false);
+$("c-new").onclick = () => { if (!$("c-text").value.trim()) { $("c-status").innerHTML = `<span class="warn">Paste a whole message pack (or load a .txt file) first.</span>`; return; } send(true); };
+$("c-file").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; $("c-text").value = (await f.text()).replace(/^\uFEFF/, ""); $("c-status").innerHTML = `<span class="mute">Loaded ${esc(f.name)}. Press <b>Start a new plan</b> to plan from it, or <b>Update my plan</b> to add it.</span>`; e.target.value = ""; };
+$("c-reset").onclick = async () => { try { localStorage.removeItem("mtm-state"); } catch {} cloudState = undefined; last = ""; $("c-status").innerHTML = `<span class="mute">Back to the saved demo plan.</span>`; await tick(); };
 $("c-clear").onclick = () => { $("c-text").value = ""; $("c-status").textContent = ""; };
 $("c-text").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); });
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
